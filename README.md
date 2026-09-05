@@ -109,3 +109,37 @@ Filled in as each step lands.
 
 ### Step 1 — dataset
 
+Four splits, 192 px, camera `tilt`, generated 2026-09-05. 2.9 GB total.
+
+| split | images | objects | obj/img | dropped | occluded <0.9 | <0.5 | img/s |
+|---|---|---|---|---|---|---|---|
+| `hard/train` | 12000 | 53961 | 4.50 | 5 | 10.0% | 0.6% | 111.1 |
+| `hard/val` | 2000 | 8992 | 4.50 | 0 | 10.2% | 0.6% | 115.1 |
+| `easy/train` | 12000 | 53835 | 4.49 | 6 | 10.1% | 0.5% | 106.4 |
+| `easy/val` | 2000 | 9049 | 4.52 | 0 | 9.8% | 0.5% | 103.6 |
+
+Classes are balanced to within 1% in every split. Box size (sqrt area) median
+28.4 px, p5 18.5, p95 43.5 — small objects by COCO's convention, which is the
+regime worth measuring.
+
+**Cost.** 108 s for 12000 images. Throughput ran 111 → 104 img/s across four
+consecutive runs, a 7% decline, under the 20% band that block 1's training loop
+flags as a sustained-power limit. So this is not throttled and the numbers are
+real. Rendering is single-threaded (llvmpipe under WSLg); the 8 available threads
+are idle throughout, which is why dataset size is never the constraint on this box.
+
+**The occlusion-pruning optimisation paid.** Naively, `visible_frac` costs one
+solo re-render per object: 4.50 per image. Skipping objects whose visible box
+intersects no other visible box brought that to 2.19 — 51% of the second-pass
+renders removed, 35% off the total. The pruning is exact, not an approximation:
+an object that overlaps nothing in the image cannot have been occluded by
+anything.
+
+**Known limitation, stated before any detector result.** Only 10% of objects are
+occluded at all and 0.6% are occluded past half. That is what a 39° elevation and
+a 0.075 m minimum separation produce. So mAP measured here is *not* stressed by
+occlusion, and any claim that the detector "handles occlusion" would be
+unsupported by this dataset. If step 3 shows occlusion matters, the honest fix is
+a lower camera or a smaller separation, and a regenerated set — not a softer
+claim.
+
