@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Steps 3(easy) -> 4 -> 5, serially. Never two trainings at once: 8 threads
 # shared between two jobs makes both slower and neither number trustworthy.
+#
+# The first version of this script waited with `pgrep -f "train_det.py --regime
+# hard --aug none"`. That deadlocked: the parent shell that launched this file
+# had the script's own text on its command line, so `pgrep -f` matched itself
+# and the loop never exited. Serialisation is now handled by the caller.
 set -u
 cd "$(dirname "$0")"
 source ~/personal/ml/env.sh
 
-while pgrep -f "train_det.py --regime hard --aug none" >/dev/null; do sleep 15; done
 echo "[$(date +%T)] step 3 easy"
 nice -n 10 python train_det.py --regime easy --aug none --epochs 20 \
      --save runs/det_easy_none.json --ckpt runs/det_easy_none.pt > runs/log_easy_none.txt 2>&1

@@ -85,8 +85,9 @@ top of every image — dead pixels, and a trivial cue for the network to latch o
 2. **a** — hand-written COCO-style AP@[.5:.95] harness — done. **b** — classical
    CV baseline with a fitted score — done, mAP 0.532 on `hard`. Metric before
    baseline, baseline before model.
-3. Anchor-free detector (heatmap + size + offset). The heatmap head is the direct
-   generalisation of block 1's soft-argmax, which won there at 5× fewer parameters.
+3. **Anchor-free detector** (heatmap + size + offset) — done, mAP 0.911 on `hard`
+   against the baseline's 0.532. The heatmap head is the direct generalisation of
+   block 1's soft-argmax, which won there at 5× fewer parameters.
 4. Augmentation ablation: none / photometric / geometric / both, against the `easy`
    and `hard` regimes. The open question is whether photometric augmentation buys
    anything once the simulator already randomises appearance.
@@ -102,6 +103,18 @@ python gen_dataset.py --regime hard --n 12000
 python gen_dataset.py --regime easy --n 12000
 python view_dataset.py --regime hard --n 12           # -> out/labels.png
 ```
+
+Or check the claims without regenerating anything:
+
+```bash
+cd ~/personal/ml/mujoco-clutter-detect && ./verify.sh
+```
+
+Tiered on purpose. The first two tiers need no dataset and no weights — they run
+the 15 hand-computed AP cases and the encode/decode inverse check, which are the
+two places a silent bug would invalidate every number below. They take under a
+minute. The later tiers need `data/` (2.9 GB, gitignored) and `runs/*.pt`, and
+say how to regenerate them rather than failing.
 
 ## Results
 
@@ -340,6 +353,64 @@ pipeline is not the cheap option either.
 Qualitative output in `out/detections.png`: boxes land on objects cleanly, and
 the visible errors are class flips and near-zero confidences on ambiguous boxes —
 consistent with finding 3.
+
+### Step 3 — anchor-free detector
+
+The heatmap head is the direct generalisation of block 1's spatial soft-argmax. Soft-argmax reduces a feature map to *one* expected location, which is exactly why it cannot be used here: there are three to six objects and one expectation cannot describe them. The generalisation is to stop reducing the map at all — keep it at stride 4 (48×48 for a 192 px input), predict a per-class centre heatmap on it, and read every local maximum instead of the mean. Size and offset ride along as two more heads on the same feature map.
+
+380,631 parameters. Trained on 10,500 images with 1,500 held out of *train* to watch for divergence; **`val` was touched exactly once, at the very end**. 25 epochs, Adam + OneCycle, 34 min at 112–128 img/s on 8 threads.
+
+Three details that are load-bearing rather than decorative:
+
+- **The heatmap bias starts at −4.6** (p = 0.01). 99.8% of the 2304 cells in a target map are zeros. Initialised at p = 0.5 the loss is dominated by pushing background down and the first epochs are wasted.
+- **3×3 max-pool is the NMS.** Not an approximation here: `MIN_SEP` = 0.075 m guarantees no two object centres land in the same cell, so peak-picking is exact and there is no IoU-based suppression anywhere in the pipeline.
+- **The Gaussian radius uses the *larger* quadratic root**, which is what the CornerNet/CenterNet reference implementations do and what the algebra does *not* call for. The smaller root was implemented first and measured: at stride 4, a 28 px object is 7 cells across and the smaller root gives r = 0.57, which floors to 0 and collapses the soft target back to a single hot pixel — destroying the only thing it exists for. The larger root gives r = 1.91. The discrepancy is recorded in `detector.py` rather than quietly papered over.
+
+Encode and decode were verified as exact inverses *before* any training, the same discipline `ap.py` got in step 2a. This bug class does not crash. It trains to a low loss and puts the boxes in the wrong place.
+
+#### Results, hard/val, 2000 images
+
+| metric | classical `bgsub+ws` | detector | change |
+|---|---|---|---|
+| mAP@[.5:.95] | 0.5322 | **0.9107** | +0.379 |
+| AP50 | 0.6979 | 0.9899 | +0.292 |
+| AP75 | 0.5637 | 0.9896 | +0.426 |
+| class-agnostic mAP | 0.6108 | 0.9099 | +0.299 |
+| detection rate @.5 | 0.6847 | 0.9433 | +0.259 |
+| latency | **2.02 ms** | 3.87 ms | 1.9× *slower* |
+
+#### Five findings
+
+**1. The classification gap closed, which is the thing step 2b predicted.** The baseline's per-class spread was the interesting part of step 2b: a linear model on nine shape features handled spheres (0.695) and failed on boxes (0.391), because a sphere's silhouette is a circle from every direction while a box's changes with yaw and there is not enough of it left at 28 px for a linear rule.
+
+| class | classical | detector |
+|---|---|---|
+| box | 0.391 | 0.914 |
+| cylinder | 0.510 | 0.910 |
+| sphere | 0.695 | 0.908 |
+| spread | **0.304** | **0.006** |
+
+The learned extractor does not just score higher, it scores *evenly*. The class that was hardest for hand-designed features is now indistinguishable from the easiest. That was a stated prediction before training, and it is now measured rather than assumed.
+
+**2. The occlusion cliff is gone — with a caveat that matters more than the number.** Recall at IoU 0.5, by visible fraction:
+
+| visible | n | classical | detector |
+|---|---|---|---|
+| ≥ 0.9 | 8078 | 0.785 | 1.000 |
+| 0.5 – 0.9 | 861 | 0.348 | 0.999 |
+| < 0.5 | 53 | **0.000** | **0.910** |
+
+The classical pipeline stopped dead below half visibility: a partially hidden object has the wrong silhouette, so every shape feature it produces is wrong at once. A centre heatmap has no such coupling — the centre of a half-occluded object is still a centre, and the size head regresses the full extent from partial evidence.
+
+The caveat: **n = 53**. That is 0.6% of the dataset, and 0.910 on 53 samples carries about ±0.04 at one sigma. Step 1 flagged this before any detector existed — a 39° elevation and a 0.075 m minimum separation simply do not produce much occlusion. So the honest claim is narrow: *the specific failure mode that stops the classical pipeline does not appear here*. It is not evidence that this detector is robust to heavy occlusion in general. Testing that properly needs a lower camera and a smaller separation, and a regenerated dataset — which is a block 5 job, not a softer sentence here.
+
+**3. Localisation is essentially exact, and AP75 is where it shows.** AP75 0.9896 against AP50 0.9899 — a 0.0003 gap. The baseline lost 0.134 between the same two thresholds. Step 2a's shift table gives the reading: a uniform 4 px error leaves AP50 at 1.000 while mAP has already fallen to 0.464, so AP50 alone cannot see localisation at all. The offset head is what buys this; `test_detector.py` measures it at 2.00 px of centre error on the worst-case box, which at stride 4 is exactly the quantisation it exists to undo.
+
+**4. The learned detector is slower, not faster.** 3.87 ms against the classical pipeline's 2.02 ms, single image, PyTorch eager, decode included. Worth stating plainly because the convenient story would be that the network wins on every axis and it does not. Block 1 found the same shape of result and then found the cause: runtime, not architecture. Eager PyTorch ran 0.65 ms there and ONNX Runtime ran 0.23 ms on the same weights, a 2.8× gap that had nothing to do with the model. Step 5 tests whether that holds again.
+
+**5. Small objects still cost, and the ordering is the expected one.** By size tercile: 0.805 (< 25.5 px), 0.854 (25.5–31.9 px), 0.884 (> 31.9 px). IoU is scale-relative, so a fixed pixel error costs a small box more — the same effect step 2a demonstrated by shifting every box 3 px and watching the smallest tercile lose more mAP than the largest. Output stride 4 means centres quantise to 4 px cells, which is 16% of a 25 px object and 9% of a 43 px one. The offset head removes most of that, and the residual 0.079 spread is what is left.
+
+Qualitative output in `out/cnn_detections.png`: each row pairs the image (dashed white ground truth, solid coloured predictions) with the centre heatmap the boxes were read from. An average cannot show a failure mode, it can only tell you one exists.
 
 ### Viewing the scene
 
