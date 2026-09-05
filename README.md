@@ -82,9 +82,9 @@ top of every image — dead pixels, and a trivial cue for the network to latch o
 ## Steps
 
 1. **Scene + dataset + label verification** — done.
-2. Classical CV baseline (contours → boxes) and a hand-written COCO-style
-   AP@[.5:.95] harness. Baseline before model, per block 1's finding that half a
-   CNN's apparent win can be calibration.
+2. **a** — hand-written COCO-style AP@[.5:.95] harness. **b** — classical CV
+   baseline (contours → boxes). Metric before baseline, baseline before model,
+   per block 1's finding that half a CNN's apparent win can be calibration.
 3. Anchor-free detector (heatmap + size + offset). The heatmap head is the direct
    generalisation of block 1's soft-argmax, which won there at 5× fewer parameters.
 4. Augmentation ablation: none / photometric / geometric / both, against the `easy`
@@ -142,4 +142,91 @@ occlusion, and any claim that the detector "handles occlusion" would be
 unsupported by this dataset. If step 3 shows occlusion matters, the honest fix is
 a lower camera or a smaller separation, and a regenerated set — not a softer
 claim.
+
+
+### Step 2a — the AP metric
+
+`pycocotools` is one import away and is deliberately not used. Every detection
+interview question is about what `ap.py` does; calling a library teaches none of
+it. Semantics follow pycocotools closely enough to be comparable, and the places
+they differ are marked in the source.
+
+**15 hand-computed unit cases** in `test_ap.py`. Every expected value is derived
+on paper, not captured from a previous run — a test that records whatever the
+code happened to print proves only that the code is deterministic. Three of them
+are worth stating because they are counter-intuitive and each one is a real bug
+this catches:
+
+| case | AP@0.5 | why |
+|---|---|---|
+| 1 gt, 1 hit, then 1 false positive | **1.000** | the FP arrives *after* recall 1.0, so no recall level was ever achievable at lower precision. It costs nothing. |
+| the same FP placed *before* the hit | **0.500** | identical detections, identical recall, half the AP |
+| 1 of 2 objects found, no FPs | **0.5050** | not 0.5 — 51 of the 101 recall levels are reachable, so it is 51/101 |
+
+Plus: matching is greedy and cannot cross images; a duplicate detection is a
+false positive and is only paid for when it outranks a later true positive
+(0.835 vs 1.000); the IoU threshold is inclusive; a class absent from the data
+gives `NaN` and is excluded from the mean rather than scored 0.
+
+**Ignore semantics get their own test** because stratified AP depends entirely on
+them. Ground truth outside a stratum is marked *ignore*, not deleted. Deleting it
+turns every correct detection of an out-of-stratum object into a false positive:
+the test shows the same data scoring **1.000 with ignore and 0.500 with
+deletion**.
+
+**End-to-end on `hard/val`** (2000 images, 8992 objects). A metric with known
+inputs has known outputs, which is what makes these checks worth anything:
+
+| input | mAP | expected |
+|---|---|---|
+| ground truth fed back as detections | **1.0000** | exactly 1 |
+| correct boxes, classes shuffled | 0.1130 | ≈ 1/9: precision 1/3 × recall 1/3 |
+| random boxes, correct classes | 0.0000 | 0 |
+| keep 75% / 50% / 25% of the hits | 0.7492 / 0.4983 / 0.2541 | ≈ the fraction kept |
+
+Controlled degradation — shifting every box by *d* px in x gives IoU exactly
+`(w-d)/(w+d)`:
+
+| shift | predicted IoU (w=28) | mAP | AP50 |
+|---|---|---|---|
+| 0 px | 1.000 | 1.0000 | 1.0000 |
+| 2 px | 0.867 | 0.7309 | 1.0000 |
+| 4 px | 0.750 | 0.4639 | 1.0000 |
+| 7 px | 0.600 | 0.1415 | 0.6873 |
+| 12 px | 0.400 | 0.0057 | 0.0480 |
+
+AP50 survives a 4 px shift untouched while mAP has already lost half its value.
+That gap *is* the argument for reporting AP@[.5:.95] — AP50 cannot see
+localisation quality at all.
+
+**Score ranking is worth as much as box quality.** Ground truth plus an equal
+number of random false positives, the same box set both times, only the ranking
+swapped:
+
+| ranking | mAP |
+|---|---|
+| hits scored above the misses | **1.0000** |
+| hits scored below the misses | **0.5000** |
+
+Same boxes, same recall, half the AP. A detector whose confidence does not rank
+its own hits above its own misses is scored as though it missed them. This is why
+step 2b's classical baseline needs a *real* score and not a constant 1.0.
+
+**Two stratification decisions:**
+
+- **Size bands are terciles of this dataset, not COCO's 32 px / 96 px.** Those
+  absolute cut-offs were chosen for ~640 px images. At 192 px every object here
+  is "small" and the stratification would carry no information. Terciles at 25.5
+  and 31.9 px show what a single number hides: a uniform 3 px shift costs
+  mAP 0.517 on the smallest third against 0.701 on the largest, because IoU is
+  scale-relative.
+- **Visibility bands report recall, not AP.** A visibility band can be applied to
+  ground truth but not to a detection — the detector never says how occluded it
+  thought an object was. So unmatched detections cannot be attributed to a band,
+  precision is undefined, and an "AP for heavily occluded objects" computed this
+  way would be an artefact of where the *other* bands' false positives landed.
+
+**Cost:** 436 ms for 2000 images × 8992 objects × 3 classes × 10 IoU thresholds.
+IoU is built once per image and reused across all ten thresholds, which is the
+only optimisation the metric needs.
 
