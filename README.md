@@ -82,9 +82,9 @@ top of every image — dead pixels, and a trivial cue for the network to latch o
 ## Steps
 
 1. **Scene + dataset + label verification** — done.
-2. **a** — hand-written COCO-style AP@[.5:.95] harness. **b** — classical CV
-   baseline (contours → boxes). Metric before baseline, baseline before model,
-   per block 1's finding that half a CNN's apparent win can be calibration.
+2. **a** — hand-written COCO-style AP@[.5:.95] harness — done. **b** — classical
+   CV baseline with a fitted score — done, mAP 0.532 on `hard`. Metric before
+   baseline, baseline before model.
 3. Anchor-free detector (heatmap + size + offset). The heatmap head is the direct
    generalisation of block 1's soft-argmax, which won there at 5× fewer parameters.
 4. Augmentation ablation: none / photometric / geometric / both, against the `easy`
@@ -230,3 +230,121 @@ step 2b's classical baseline needs a *real* score and not a constant 1.0.
 IoU is built once per image and reused across all ten thresholds, which is the
 only optimisation the metric needs.
 
+
+### Step 2b — classical baseline
+
+Built before the network, not after it, because block 1 showed a carelessly built
+baseline inflates the model's apparent win — there, half the CNN's advantage was
+a single calibration scalar the baseline had never been given. So this one gets
+everything a classical pipeline can fairly have, including a fitted classifier.
+
+Pipeline: estimate the table per image → threshold the residual → split touching
+regions → nine shape features per region → multinomial logistic regression for
+class and confidence. The classifier is **linear on hand-designed features**,
+which is what the classical convention is (a linear model on HOG, on SIFT, on
+shape moments). Making it an MLP would quietly turn the baseline into a small
+neural network and destroy the comparison it exists for. A fourth class,
+background, lets it suppress its own false positives — a hand-built objectness.
+
+**Nothing is thresholded before AP.** AP integrates over every score cut-off, so
+discarding low-confidence detections in advance only removes recall the metric
+would have credited.
+
+**All tuning was done on `train` and reported on `val`.** Choosing the watershed's
+peak-smoothing on the split you then report is exactly how a baseline gets
+silently inflated.
+
+#### Results, `val`, 2000 images
+
+| method | regime | mAP | AP50 | AP75 | agnostic mAP | det rate | ms/img |
+|---|---|---|---|---|---|---|---|
+| otsu | easy | 0.4460 | 0.5178 | 0.4488 | 0.5138 | 0.5482 | 0.36 |
+| otsu | **hard** | **0.1430** | 0.2182 | 0.1401 | 0.1699 | 0.2316 | 0.19 |
+| bgsub | easy | 0.5002 | 0.5639 | 0.4962 | 0.5307 | 0.5524 | 1.04 |
+| bgsub | hard | 0.4114 | 0.4979 | 0.4128 | 0.4761 | 0.5251 | 1.12 |
+| bgsub+ws | easy | 0.5895 | 0.7672 | 0.5853 | 0.6658 | 0.7164 | 1.88 |
+| **bgsub+ws** | **hard** | **0.5322** | 0.6979 | 0.5637 | 0.6108 | 0.6847 | 2.02 |
+
+#### Four findings
+
+**1. A repair applied to something that is not broken is damage.**
+
+`bgsub` alone leaves a *bimodal* error distribution: 47.3% of objects recovered at
+IoU ≥ 0.9, and 38.6% below 0.5 because touching objects merge into one region. The
+obvious fix — distance-transform watershed — made things worse when applied to
+every region:
+
+| | reg/img | det rate | agnostic mAP | IoU ≥ 0.9 | IoU < 0.5 |
+|---|---|---|---|---|---|
+| `bgsub` | 3.40 | 0.5211 | 0.3746 | 47.3% | 38.6% |
+| watershed on **every** region | 4.29 | 0.4933 | 0.3004 | **6.3%** | 25.0% |
+| watershed on **multi-seed regions only** | 4.29 | **0.7067** | **0.5525** | **52.6%** | **14.1%** |
+
+Running the watershed everywhere redraws the boundary of regions that were already
+correct, and the near-perfect tier collapsed from 47.3% to 6.3% while the merged
+tier only fell from 38.6% to 25.0%. Counting the distance-transform seeds inside
+each connected region first, and leaving single-seed regions untouched, keeps the
+good tier *and* fixes the merges: **det rate 0.52 → 0.71, agnostic mAP 0.37 →
+0.55.** A parameter sweep would never have found this — the sweep converged
+towards "split less", which was the wrong axis entirely.
+
+**2. A wrong prior still returns an answer.** Global Otsu on greyscale is a
+reasonable-looking method: objects and table differ in brightness, so split the
+histogram. Under `easy` it scores mAP 0.446. Under `hard`, where table value is
+uniform(0.25, 0.85) and object value uniform(0.45, 1.0), the two distributions
+overlap and the split lands inside the objects — mAP **0.143**, a 3.1× collapse,
+detection rate 0.232. It never raised an error. It returned a mask every time, and
+its per-class numbers on `hard` (box 0.091) read like a weak detector rather than
+a broken one. This is block 1's finding 1 reproduced in a different task: report
+detection rate beside accuracy, always.
+
+The robust segmenter degrades 18% (`bgsub`, 0.500 → 0.411) and the full pipeline
+10% (`bgsub+ws`, 0.590 → 0.532) across the same appearance shift.
+
+**3. Classification is the bottleneck, not localisation.** On `hard`, `bgsub+ws`
+scores class-agnostic AP50 **0.823** against class-aware AP50 **0.698**. The boxes
+are in the right place; the label on them is wrong 15% of the time. Per class:
+
+| class | AP@[.5:.95] |
+|---|---|
+| sphere | 0.695 |
+| cylinder | 0.510 |
+| box | 0.391 |
+
+A sphere's silhouette is a circle from every direction, so nine shape features
+describe it completely. A box's silhouette under a tilted camera changes with
+yaw, and at 28 px there is not enough of it left for a linear rule. That gap is
+the specific thing a learned feature extractor should close in step 3, and it is
+now measured rather than assumed.
+
+**4. Occlusion is where the classical pipeline stops, not degrades.** Recall at
+IoU 0.5, by how much of the object is visible:
+
+| visible | n | recall |
+|---|---|---|
+| ≥ 0.9 | 8078 | 0.785 |
+| 0.5 – 0.9 | 861 | 0.348 |
+| < 0.5 | 53 | **0.000** |
+
+Not a slope — a cliff. A partially hidden object has the wrong silhouette, so
+every shape feature it produces is wrong at once. Step 1 flagged that this
+dataset has only 10% occluded objects and 0.6% heavily occluded, so this costs
+little mAP here; it is recorded because it is the failure a learned detector is
+supposed to fix, and because the honest way to test that claim later is to
+regenerate the dataset with a lower camera.
+
+**Cost:** 2.02 ms/img for the full pipeline, single-threaded. Block 1's CNN ran at
+0.65 ms under PyTorch eager and 0.23 ms under ONNX Runtime, so the classical
+pipeline is not the cheap option either.
+
+Qualitative output in `out/detections.png`: boxes land on objects cleanly, and
+the visible errors are class flips and near-zero confidences on ambiguous boxes —
+consistent with finding 3.
+
+### Viewing the scene
+
+`out/showcase_*.png` render the same `scene.xml` with shadows on and a textured
+floor, and `view_live.py` opens it in MuJoCo's interactive viewer with both task
+cameras in the dropdown. The dataset renders plain because shadow mapping is what
+software rendering is slow at — roughly 130 img/s with shadows against 800+
+without, a 6× difference on the only cost that matters during generation.
