@@ -1,0 +1,39 @@
+<mujoco model="clutter_detect">
+  <compiler angle="radian"/>
+  <option gravity="0 0 -9.81"/>
+  <visual>
+    <global offwidth="256" offheight="256"/>
+    <quality shadowsize="0"/>
+    <headlight ambient="0.3 0.3 0.3" diffuse="0.4 0.4 0.4" specular="0 0 0"/>
+  </visual>
+
+  <worldbody>
+    <light name="l0" pos="0 0 1.2" dir="0 0 -1" diffuse="0.7 0.7 0.7" specular="0.1 0.1 0.1"/>
+
+    <!-- table top lies in the z=0 plane, same contract as block 1.
+         Half-size 1.5 m, not 0.5: the tilted camera's top frame ray only meets the
+         ground 1.15 m out, and a smaller plane leaves a constant black band across
+         the top of every image -- dead pixels and a trivial cue for the network. -->
+    <geom name="table" type="plane" size="1.5 1.5 0.01" rgba="0.75 0.75 0.72 1"/>
+
+    <!-- overhead: kept from block 1. pixel<->world is exactly affine here, which is
+         what lets us verify the labels and what blocks 4-6 will use. -->
+    <camera name="top" pos="0 0 0.45" xyaxes="1 0 0 0 1 0" fovy="45"/>
+
+    <!-- tilted: 39 deg elevation, 0.54 m from the origin. THIS is the detection view.
+         Perspective, depth-dependent scale, and objects that actually occlude
+         each other. None of those exist in the overhead view. -->
+    <camera name="tilt" pos="0 -0.42 0.34" xyaxes="1 0 0  0 0.629 0.777" fovy="45"/>
+
+    <!-- Six static object slots. No joints: we never step the physics, we place
+         objects kinematically and call mj_forward. Slot shape, size, colour and
+         pose are all mjModel fields, so all of them are writable at run time --
+         one XML covers every class. Unused slots get parked outside both FOVs. -->
+    <body name="obj0" pos="10 10 0"><geom name="g0" type="box" size="0.03 0.03 0.03" rgba="0.8 0.15 0.15 1"/></body>
+    <body name="obj1" pos="10 10 0"><geom name="g1" type="box" size="0.03 0.03 0.03" rgba="0.8 0.15 0.15 1"/></body>
+    <body name="obj2" pos="10 10 0"><geom name="g2" type="box" size="0.03 0.03 0.03" rgba="0.8 0.15 0.15 1"/></body>
+    <body name="obj3" pos="10 10 0"><geom name="g3" type="box" size="0.03 0.03 0.03" rgba="0.8 0.15 0.15 1"/></body>
+    <body name="obj4" pos="10 10 0"><geom name="g4" type="box" size="0.03 0.03 0.03" rgba="0.8 0.15 0.15 1"/></body>
+    <body name="obj5" pos="10 10 0"><geom name="g5" type="box" size="0.03 0.03 0.03" rgba="0.8 0.15 0.15 1"/></body>
+  </worldbody>
+</mujoco>

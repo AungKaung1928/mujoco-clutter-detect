@@ -1,0 +1,5 @@
+data/
+out/
+runs/
+__pycache__/
+*.onnx
