@@ -11,13 +11,15 @@
   "mAP_torch": 0.9126761305862695,
   "mAP_onnx": 0.9126761305862695,
   "latency_ms": {
-    "torch_eager_8t": 3.7729497049986094,
-    "torch_eager_4t": 4.608195639993937,
-    "torch_eager_1t": 6.3051242450001155,
-    "onnxrt_8t": 1.2248838749928836,
-    "onnxrt_4t": 1.7642662649996055,
-    "onnxrt_1t": 4.872353284999917
+    "torch_eager_8t": 2.749793185000158,
+    "torch_eager_4t": 2.53800291999994,
+    "torch_eager_1t": 5.144991310000364,
+    "onnxrt_8t": 1.0144511400000056,
+    "onnxrt_4t": 1.117871765000018,
+    "onnxrt_1t": 3.690700340000035
   },
-  "decode_ms": 0.16888356999515963,
-  "classical_ms": 2.02
+  "decode_ms": 0.18097920500053988,
+  "classical_ms": 2.129,
+  "measured": "2026-09-06 09:36 JST, idle box, 1-min load 0.30, nice -n 10, no other python process",
+  "path": "runs/detector.onnx"
 }

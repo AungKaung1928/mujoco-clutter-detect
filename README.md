@@ -4,9 +4,10 @@ Multi-object detection on a simulated tabletop. Three classes (`box`, `cylinder`
 `sphere`), 3–6 objects per scene, a tilted camera, and labels read straight out of
 the renderer's segmentation buffer.
 
-Block 2 of the ML track. Block 1 (`../mujoco-cube-pose-cnn`) regressed one pose
-from a top-down view and closed at 0.59 mm median error with a 27k-parameter
-soft-argmax head.
+Block 2 of the ML track, **closed 2026-09-06** — every step below has a measured
+result. Block 1 ([`mujoco-cube-pose-cnn`](https://github.com/AungKaung1928/mujoco-cube-pose-cnn))
+regressed one pose from a top-down view and closed at 0.59 mm median error with a
+27k-parameter soft-argmax head.
 
 ## Why the camera moved
 
@@ -88,11 +89,14 @@ top of every image — dead pixels, and a trivial cue for the network to latch o
 3. **Anchor-free detector** (heatmap + size + offset) — done, mAP 0.911 on `hard`
    against the baseline's 0.532. The heatmap head is the direct generalisation of
    block 1's soft-argmax, which won there at 5× fewer parameters.
-4. Augmentation ablation: none / photometric / geometric / both, against the `easy`
-   and `hard` regimes. The open question is whether photometric augmentation buys
-   anything once the simulator already randomises appearance.
-5. ONNX export and latency, carrying block 1's finding that the runtime, not the
-   architecture, dominated edge latency.
+4. **Augmentation ablation** — done. 2×4 grid, one budget. Photometric augmentation
+   on top of the simulator's own randomisation buys **+0.0007 mAP** — nothing — and
+   recovers only a third of the `easy`→`hard` gap when the randomiser is absent.
+   Training on the randomised regime is what transfers.
+5. **ONNX export and latency** — done. mAP identical through ONNX Runtime; **1.20 ms**
+   end to end on 8 threads against the classical pipeline's 2.13 ms. Block 1's
+   "runtime is the cost" finding holds only in part, and the first measurement
+   had to be thrown away — both recorded below.
 
 ## Reproducing
 
@@ -102,7 +106,18 @@ python gen_dataset.py --regime hard --n 200 --smoke   # smallest useful run
 python gen_dataset.py --regime hard --n 12000
 python gen_dataset.py --regime easy --n 12000
 python view_dataset.py --regime hard --n 12           # -> out/labels.png
+
+nice -n 10 python train_det.py --regime hard --epochs 25 \
+    --save runs/det_hard_none.json --ckpt runs/det_hard_none.pt     # step 3, ~35 min
+nice -n 10 python run_ablation.py --epochs 12 --fit-n 6000 \
+    --out runs/ablation.json                                        # step 4, ~95 min
+nice -n 10 python export_onnx.py --ckpt runs/det_hard_none.pt \
+    --regime hard --save runs/onnx.json                             # step 5, ~5 min, idle box only
 ```
+
+Everything the README quotes is tracked: `runs/*.json` (metrics), `runs/log_*.txt`
+(per-epoch transcripts), `runs/detector.onnx`, and both checkpoints. Only `data/`
+(2.9 GB) has to be regenerated.
 
 Or check the claims without regenerating anything:
 
@@ -379,6 +394,11 @@ Encode and decode were verified as exact inverses *before* any training, the sam
 | detection rate @.5 | 0.6847 | 0.9433 | +0.259 |
 | latency | **2.02 ms** | 3.87 ms | 1.9× *slower* |
 
+*Latency row measured in-process, directly after a 34-minute training run. Step 5
+re-measures both columns on an idle box: 2.13 ms against 2.93 ms (eager, 8 threads,
+decode included), i.e. 1.4× slower, not 1.9×. The rest of this table is unaffected —
+mAP does not depend on how hot the CPU was.*
+
 #### Five findings
 
 **1. The classification gap closed, which is the thing step 2b predicted.** The baseline's per-class spread was the interesting part of step 2b: a linear model on nine shape features handled spheres (0.695) and failed on boxes (0.391), because a sphere's silhouette is a circle from every direction while a box's changes with yaw and there is not enough of it left at 28 px for a linear rule.
@@ -411,6 +431,210 @@ The caveat: **n = 53**. That is 0.6% of the dataset, and 0.910 on 53 samples car
 **5. Small objects still cost, and the ordering is the expected one.** By size tercile: 0.805 (< 25.5 px), 0.854 (25.5–31.9 px), 0.884 (> 31.9 px). IoU is scale-relative, so a fixed pixel error costs a small box more — the same effect step 2a demonstrated by shifting every box 3 px and watching the smallest tercile lose more mAP than the largest. Output stride 4 means centres quantise to 4 px cells, which is 16% of a 25 px object and 9% of a 43 px one. The offset head removes most of that, and the residual 0.079 spread is what is left.
 
 Qualitative output in `out/cnn_detections.png`: each row pairs the image (dashed white ground truth, solid coloured predictions) with the centre heatmap the boxes were read from. An average cannot show a failure mode, it can only tell you one exists.
+
+### Step 4 — augmentation against domain randomisation
+
+The question, stated before the runs: photometric augmentation exists because real
+datasets are captured under one set of lights and deployed under another. The
+`hard` regime already randomises object hue, table shade, light position and light
+intensity at render time. Does augmentation add anything the randomiser does not
+already cover?
+
+Two regimes × four augmentations, **one identical budget per cell**: 6000 training
+images, 12 epochs, same seed, same schedule. Every model is scored on *both* val
+splits, so each row has an in-distribution number and a cross-regime number. The
+`easy`→`hard` column is the sim-to-real question in miniature: `easy` is a
+simulator nobody randomised, `hard` is the world it has to survive. 96.4 minutes
+total, eight cells, serial, 8 threads.
+
+| trained on | aug | `easy` val | `hard` val | train s |
+|---|---|---|---|---|
+| easy | none | 0.9013 | **0.1465** | 595 |
+| easy | photo | 0.8945 | 0.5214 | 783 |
+| easy | geom | 0.9093 | 0.1808 | 608 |
+| easy | both | 0.9060 | 0.5065 | 737 |
+| hard | none | 0.8683 | 0.8735 | 589 |
+| hard | photo | 0.8643 | 0.8742 | 782 |
+| hard | geom | **0.8844** | **0.8893** | 648 |
+| hard | both | 0.8806 | 0.8857 | 839 |
+
+For scale, the full-budget step 3 models (10 500 images, 20–25 epochs): `easy/none`
+scores 0.9278 on `easy` and **0.1798** on `hard`; `hard/none` scores 0.9107 on `hard`.
+
+#### Six findings
+
+**1. The gap is appearance, and it is a cliff, not a slope.** A detector trained on
+fixed appearance scores 0.90 on what it saw and **0.15** when the table colour and
+the light move. Detection rate falls to 0.29 — it does not misclassify seven objects
+in ten, it fails to see them. Nothing about the geometry, the camera, the object
+shapes or the sizes changed between the two columns. This is the number the whole
+track is about: a policy trained in an un-randomised simulator meets the real world
+in exactly this way, and the failure is silent — no error, just boxes missing.
+
+**2. Photometric augmentation recovers a third of the gap and stops.** 0.147 → 0.521,
+still 0.35 short of simply training on `hard` (0.874). The mechanism is visible in
+what each one varies. Augmentation perturbs the *whole image* with one brightness,
+one contrast, one gamma, one channel gain — a global nuisance model. The randomiser
+gives every object its own hue and moves the light source, which changes the
+shading *direction* on every face. Augmentation is a hand-written model of the
+nuisance; the randomiser samples the nuisance itself. A model cannot be augmented
+towards a variation nobody wrote down.
+
+**3. Geometric augmentation does nothing across the gap.** 0.147 → 0.181, within
+the noise of a single seed. Flip and translation add placement diversity, and
+placement was never the problem — the two regimes share one camera and one
+placement distribution. An augmentation only buys invariance along the axis it
+perturbs, and the gap here is on a different axis. Worth stating because the
+default recipe applies everything at once and then cannot say which part worked.
+
+**4. On top of the randomiser, photometric augmentation buys nothing.** `hard/none`
+0.8735, `hard/photo` 0.8742: **+0.0007**, for 33% more training time (the
+augmentation runs in numpy in the main process, `num_workers=0`). That is the
+answer to the question step 4 was set up to ask. The randomiser already covers the
+axis photometric augmentation would add, so the augmentation is redundant with it.
+Every hour on an augmentation pipeline for a randomised simulator is an hour on
+nothing — and block 5's bigger randomiser should be built knowing that.
+
+Geometric augmentation *does* add +0.016 within `hard` (0.8735 → 0.8893) and
++0.008 within `easy`. Single seed, so suggestive rather than proven, but the
+direction is the expected one for a 6000-image dataset: flip and shift are extra
+placements, which the randomiser only samples 6000 times.
+
+**5. The randomised model transfers to the fixed regime for free.** `hard/none`
+loses **0.005** going to `easy` (0.8735 → 0.8683). `easy/none` loses **0.75** going
+the other way. The asymmetry is the entire argument for domain randomisation: the
+randomised distribution *contains* the fixed one, so a model trained on it has
+already seen the fixed regime as a special case. Nothing was tuned for `easy` and
+nothing needed to be.
+
+**6. More data does not close an appearance gap.** The full-budget `easy/none`
+model saw 75% more images and 67% more epochs than the ablation cell and gained
++0.027 on `easy` — and **+0.033** on `hard`, from 0.147 to 0.180. Coverage of the
+distribution is what transfers, not the number of samples drawn from the wrong
+one. When a model fails out of distribution, "collect more data" is only the
+right answer if the new data comes from somewhere new.
+
+**Cost.** 96.4 min for eight cells. Photometric cells run at ~75% of the
+throughput of the others (783 s vs 595 s) because per-sample numpy augmentation
+is done in the training process; with the finding in 4, that cost was never worth
+removing.
+
+### Step 5 — ONNX export and what the runtime is actually worth
+
+Export first, verify second, time third. An export that is 3× faster and 2% wrong
+is not an optimisation, and a max-abs-diff on the raw tensors is not a proof: a
+small logit drift can move a heatmap peak by one cell and change a box. So the
+check is end to end — full detections through the ONNX graph, scored by the same
+`ap.py`, against the PyTorch model on the same images.
+
+| check | result |
+|---|---|
+| max \|torch − onnx\| per head | heatmap 2.4e-6, size 1.1e-5, offset 4.8e-6 |
+| mAP, first 500 `hard/val` images, PyTorch | 0.9127 |
+| mAP, same 500 images, ONNX Runtime | **0.9127** |
+| graph | 1.53 MB, 380 631 params, opset 17, batch fixed at 1 |
+
+(0.9127 is on a 500-image subset; the 0.9107 in step 3 is the full 2000. Different
+sample, not a different model.) Batch is fixed at 1 deliberately: an edge camera
+delivers one frame at a time, and a graph exported for the shape it will see is the
+graph the runtime can plan for.
+
+#### Latency, `hard/val`, batch 1, 200 images, idle box
+
+Measured 2026-09-06, 1-minute load 0.30, no other Python process, `nice -n 10`.
+Decode (3×3 max-pool NMS + top-k + gather) is 0.18 ms and runtime-independent; it
+is added to every row because a heatmap is not a detection.
+
+| runtime | threads | model ms | end to end ms | vs classical 2.13 ms |
+|---|---|---|---|---|
+| ONNX Runtime | 8 | 1.01 | **1.20** | **1.8× faster** |
+| ONNX Runtime | 4 | 1.12 | 1.30 | 1.6× faster |
+| PyTorch eager | 4 | 2.54 | 2.72 | 0.78× |
+| PyTorch eager | 8 | 2.75 | 2.93 | 0.73× |
+| ONNX Runtime | 1 | 3.69 | 3.87 | 0.55× |
+| PyTorch eager | 1 | 5.15 | 5.33 | 0.40× |
+
+The classical `bgsub+ws` pipeline was re-timed in the same session: 2.13 ms
+(2.02 ms in step 2b, +5%; it is single-threaded and far less sensitive to the box).
+
+#### Five findings
+
+**1. The runtime is worth 2.7× at 8 threads — and 1.4× at one.** Block 1 found
+ONNX Runtime on *one* thread beating PyTorch eager on *eight* (0.23 ms vs 0.65 ms).
+That does not repeat here: ORT on one thread is 3.69 ms, eager on eight is 2.75.
+The difference is the model. Block 1's network was 27k parameters with a 16×16
+output — per-op dispatch overhead was most of the time, and a runtime that removes
+overhead removes most of the time. This one is 14× larger with a 48×48×7 output at
+stride 4; the convolutions themselves are the cost, and they cost the same
+arithmetic in either runtime. The refined rule: **the runtime dominates when the
+model is small enough to be overhead-bound; once it is compute-bound, the thread
+budget matters as much as the engine.** Block 1's number was true and its
+generalisation was not.
+
+**2. Four threads is the knee, and eight is worse for eager.** ORT: 3.69 → 1.12 →
+1.01 ms for 1 → 4 → 8 threads. 3.3× from the first four, 10% from the next four.
+PyTorch eager on 8 threads (2.75) is *slower* than on 4 (2.54): thread
+oversubscription on a batch-1 forward costs more than the parallelism returns. A
+ROS 2 node given 4 cores gets essentially everything this model can deliver; a
+node given 1 core is 1.8× slower than the classical pipeline it was supposed to
+replace. The deployment question is not "how fast is the detector" but "how fast
+is the detector on the cores it will actually be given" — and that number can be
+on either side of the baseline.
+
+**3. Decode is 15% of the end-to-end latency at the best setting.** 0.18 ms against
+1.01 ms of model. It is pure PyTorch tensor ops on a (3, 48, 48) map and does not
+shrink with the runtime. On a small, fast model the post-processing stops being
+free, and any deployment budget that lists only the model's forward time is
+under-reporting by that much.
+
+**4. The detector now beats the classical pipeline — on 4 or more threads.** 1.20 ms
+vs 2.13 ms end to end, with mAP 0.91 vs 0.53. Step 3 recorded the eager model as
+slower than the baseline and step 5 was set up to find out whether that was the
+architecture or the engine. It was the engine, on a full thread budget, and the
+architecture, on a single thread. Both halves of that sentence are the result.
+
+**5. The first measurement was thrown away, and why is the most reusable finding
+here.** Step 5 first ran unattended at 14:06 on 2026-09-05, immediately after the
+96-minute ablation, and recorded ORT-8t **1.225 ms** and eager-8t **3.773 ms**. Same
+weights, same code, same box, re-run idle the next morning: **1.014** and **2.750** —
+17% and 27% faster. The classical baseline moved 5% in the same comparison.
+
+WSL exposes no temperature sensor, so the cause cannot be read directly. But the
+box had just finished 1.5 hours at sustained 8-thread load, the multithreaded
+numbers moved and the single-threaded one barely did, and this is exactly the
+>20% throughput decay the training loop was built to flag as the sustained-power
+limit. Three consequences, adopted for the rest of the track:
+
+- a latency number is only reported with the conditions it was taken under
+  (load, other processes, what ran on the box in the previous hour);
+- nothing timed directly after a training run is trusted;
+- both measurements stay in the repo — `runs/onnx_after_ablation.json` is the
+  unattended run, `runs/onnx.json` is the idle re-run — because a number that was
+  silently replaced is worse than a number that was wrong.
+
+The 3.87 ms in step 3's table was taken in-process after 34 minutes of training and
+has the same problem; its footnote points here.
+
+## Block 2 — closed
+
+What was measured, in one paragraph. On a tilted-camera tabletop with exact
+segmentation-buffer labels, a hand-written COCO AP harness (15 paper-derived cases,
+end-to-end controls) scored a fully fitted classical pipeline at **mAP 0.532** and a
+381k-parameter anchor-free heatmap detector at **0.911**, with the per-class spread
+collapsing from 0.30 to 0.006 and the classical occlusion cliff absent. Training
+on randomised appearance is what transfers: an un-randomised model collapses to
+**0.15** under appearance shift, photometric augmentation recovers it only to 0.52,
+and on top of the randomiser it adds **0.0007**. Through ONNX Runtime the detector
+runs at **1.20 ms** end to end on 8 threads against the classical 2.13 ms, identical
+mAP, and the first latency measurement was discarded for having been taken on a
+hot box.
+
+What carries into project 3 (RL on a biped in MuJoCo): the domain-randomisation
+asymmetry in step 4 finding 5 is the design rule for the physics randomiser; the
+"measure on an idle box, record the conditions" rule in step 5 finding 5 applies
+to every steps-per-second figure; and the heatmap head's lineage from block 1's
+soft-argmax is the keypoint front end a visuomotor policy would use if the duck
+ever gets a camera policy.
 
 ### Viewing the scene
 

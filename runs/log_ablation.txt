@@ -1,0 +1,311 @@
+
+======================================================================
+easy/none   (1/8, 0s elapsed)
+======================================================================
+regime easy  aug none  params 380,631  fit 6000 tune 1500 val 2000  12 epochs x 187 steps
+  ep   1/12  loss 1.4906  hm 0.9260  wh 3.063  off 0.2583     125 img/s
+  ep   2/12  loss 0.5183  hm 0.3363  wh 0.581  off 0.1239     122 img/s
+  ep   3/12  loss 0.3590  hm 0.2090  wh 0.437  off 0.1062     125 img/s
+  ep   4/12  loss 0.2825  hm 0.1484  wh 0.381  off 0.0960     119 img/s
+  ep   5/12  loss 0.2399  hm 0.1161  wh 0.352  off 0.0886     121 img/s   tune mAP 0.8478
+  ep   6/12  loss 0.2029  hm 0.0963  wh 0.307  off 0.0759     115 img/s
+  ep   7/12  loss 0.1766  hm 0.0776  wh 0.292  off 0.0698     122 img/s
+  ep   8/12  loss 0.1566  hm 0.0623  wh 0.296  off 0.0647     126 img/s
+  ep   9/12  loss 0.1296  hm 0.0468  wh 0.227  off 0.0600     126 img/s
+  ep  10/12  loss 0.1075  hm 0.0334  wh 0.191  off 0.0550     126 img/s   tune mAP 0.8939
+  ep  11/12  loss 0.0938  hm 0.0249  wh 0.178  off 0.0511     126 img/s
+  ep  12/12  loss 0.0871  hm 0.0213  wh 0.167  off 0.0491     126 img/s   tune mAP 0.8990
+
+[cnn/none] easy  (trained here)
+  detections            17199 (8.60/img)   gt 9049 (4.52/img)
+  mAP@[.5:.95]          0.9013        AP50 0.9925   AP75 0.9892
+  class-agnostic mAP    0.9026        AP50 0.9899   <- localisation only
+  detection rate @.5    0.9349        <- found at all, class ignored
+  per class             box 0.904   cylinder 0.902   sphere 0.899
+  by size (terciles)    0-25px 0.779   25-31px 0.835   31-999px 0.822
+  recall by visibility  0.0-0.5 0.965 (n=48)   0.5-0.9 1.000 (n=846)   0.9-1.0 1.000 (n=8155)
+  latency               3.76 ms/img
+
+[cnn/none] hard  (TRAINED ON easy)
+  detections            19874 (9.94/img)   gt 8992 (4.50/img)
+  mAP@[.5:.95]          0.1465        AP50 0.3190   AP75 0.1154
+  class-agnostic mAP    0.2096        AP50 0.4834   <- localisation only
+  detection rate @.5    0.2919        <- found at all, class ignored
+  per class             box 0.198   cylinder 0.148   sphere 0.094
+  by size (terciles)    0-25px 0.067   25-32px 0.084   32-999px 0.093
+  recall by visibility  0.0-0.5 0.147 (n=53)   0.5-0.9 0.343 (n=861)   0.9-1.0 0.497 (n=8078)
+  latency               3.76 ms/img
+
+======================================================================
+easy/photo   (2/8, 619s elapsed)
+======================================================================
+regime easy  aug photo  params 380,631  fit 6000 tune 1500 val 2000  12 epochs x 187 steps
+  ep   1/12  loss 1.6533  hm 1.0662  wh 3.194  off 0.2677      96 img/s
+  ep   2/12  loss 0.5564  hm 0.3658  wh 0.614  off 0.1292      94 img/s
+  ep   3/12  loss 0.3949  hm 0.2382  wh 0.451  off 0.1116      94 img/s
+  ep   4/12  loss 0.2983  hm 0.1602  wh 0.386  off 0.0996      93 img/s
+  ep   5/12  loss 0.2478  hm 0.1253  wh 0.327  off 0.0898     104 img/s   tune mAP 0.7605
+  ep   6/12  loss 0.2172  hm 0.1059  wh 0.303  off 0.0810      87 img/s
+  ep   7/12  loss 0.1862  hm 0.0862  wh 0.267  off 0.0734      91 img/s
+  ep   8/12  loss 0.1630  hm 0.0709  wh 0.246  off 0.0675      91 img/s
+  ep   9/12  loss 0.1437  hm 0.0570  wh 0.223  off 0.0644      91 img/s
+  ep  10/12  loss 0.1242  hm 0.0455  wh 0.197  off 0.0590      93 img/s   tune mAP 0.8917
+  ep  11/12  loss 0.1106  hm 0.0365  wh 0.188  off 0.0553      92 img/s
+  ep  12/12  loss 0.1043  hm 0.0328  wh 0.181  off 0.0534      96 img/s   tune mAP 0.8927
+
+[cnn/photo] easy  (trained here)
+  detections            17957 (8.98/img)   gt 9049 (4.52/img)
+  mAP@[.5:.95]          0.8945        AP50 0.9924   AP75 0.9889
+  class-agnostic mAP    0.8944        AP50 0.9899   <- localisation only
+  detection rate @.5    0.9276        <- found at all, class ignored
+  per class             box 0.896   cylinder 0.892   sphere 0.896
+  by size (terciles)    0-25px 0.755   25-31px 0.825   31-999px 0.835
+  recall by visibility  0.0-0.5 0.937 (n=48)   0.5-0.9 1.000 (n=846)   0.9-1.0 1.000 (n=8155)
+  latency               4.55 ms/img
+
+[cnn/photo] hard  (TRAINED ON easy)
+  detections            19772 (9.89/img)   gt 8992 (4.50/img)
+  mAP@[.5:.95]          0.5214        AP50 0.7136   AP75 0.5846
+  class-agnostic mAP    0.5423        AP50 0.7818   <- localisation only
+  detection rate @.5    0.5832        <- found at all, class ignored
+  per class             box 0.527   cylinder 0.517   sphere 0.521
+  by size (terciles)    0-25px 0.357   25-32px 0.426   32-999px 0.510
+  recall by visibility  0.0-0.5 0.429 (n=53)   0.5-0.9 0.611 (n=861)   0.9-1.0 0.770 (n=8078)
+  latency               5.22 ms/img
+
+======================================================================
+easy/geom   (3/8, 1426s elapsed)
+======================================================================
+regime easy  aug geom  params 380,631  fit 6000 tune 1500 val 2000  12 epochs x 187 steps
+  ep   1/12  loss 1.5042  hm 0.9334  wh 3.116  off 0.2592     121 img/s
+  ep   2/12  loss 0.5040  hm 0.3282  wh 0.549  off 0.1208     119 img/s
+  ep   3/12  loss 0.3563  hm 0.2017  wh 0.439  off 0.1107     122 img/s
+  ep   4/12  loss 0.2828  hm 0.1494  wh 0.385  off 0.0949     110 img/s
+  ep   5/12  loss 0.2458  hm 0.1239  wh 0.357  off 0.0862     119 img/s   tune mAP 0.7848
+  ep   6/12  loss 0.2156  hm 0.1076  wh 0.314  off 0.0766     123 img/s
+  ep   7/12  loss 0.1983  hm 0.0970  wh 0.300  off 0.0712     120 img/s
+  ep   8/12  loss 0.1855  hm 0.0879  wh 0.287  off 0.0688     123 img/s
+  ep   9/12  loss 0.1632  hm 0.0764  wh 0.255  off 0.0613     125 img/s
+  ep  10/12  loss 0.1500  hm 0.0702  wh 0.210  off 0.0588     120 img/s   tune mAP 0.9033
+  ep  11/12  loss 0.1434  hm 0.0679  wh 0.203  off 0.0552     122 img/s
+  ep  12/12  loss 0.1364  hm 0.0640  wh 0.189  off 0.0535     123 img/s   tune mAP 0.9124
+
+[cnn/geom] easy  (trained here)
+  detections            18168 (9.08/img)   gt 9049 (4.52/img)
+  mAP@[.5:.95]          0.9093        AP50 0.9932   AP75 0.9897
+  class-agnostic mAP    0.9091        AP50 0.9901   <- localisation only
+  detection rate @.5    0.9402        <- found at all, class ignored
+  per class             box 0.911   cylinder 0.914   sphere 0.902
+  by size (terciles)    0-25px 0.808   25-31px 0.846   31-999px 0.802
+  recall by visibility  0.0-0.5 0.929 (n=48)   0.5-0.9 1.000 (n=846)   0.9-1.0 1.000 (n=8155)
+  latency               3.23 ms/img
+
+[cnn/geom] hard  (TRAINED ON easy)
+  detections            19916 (9.96/img)   gt 8992 (4.50/img)
+  mAP@[.5:.95]          0.1808        AP50 0.4044   AP75 0.1289
+  class-agnostic mAP    0.2256        AP50 0.5175   <- localisation only
+  detection rate @.5    0.3153        <- found at all, class ignored
+  per class             box 0.210   cylinder 0.214   sphere 0.118
+  by size (terciles)    0-25px 0.067   25-32px 0.094   32-999px 0.135
+  recall by visibility  0.0-0.5 0.180 (n=53)   0.5-0.9 0.393 (n=861)   0.9-1.0 0.571 (n=8078)
+  latency               4.04 ms/img
+
+======================================================================
+easy/both   (4/8, 2059s elapsed)
+======================================================================
+regime easy  aug both  params 380,631  fit 6000 tune 1500 val 2000  12 epochs x 187 steps
+  ep   1/12  loss 1.6580  hm 1.0719  wh 3.192  off 0.2669      98 img/s
+  ep   2/12  loss 0.5520  hm 0.3631  wh 0.603  off 0.1287     101 img/s
+  ep   3/12  loss 0.3954  hm 0.2403  wh 0.449  off 0.1102     100 img/s
+  ep   4/12  loss 0.3066  hm 0.1690  wh 0.392  off 0.0984     101 img/s
+  ep   5/12  loss 0.2585  hm 0.1353  wh 0.351  off 0.0881      98 img/s   tune mAP 0.7771
+  ep   6/12  loss 0.2250  hm 0.1140  wh 0.307  off 0.0803      98 img/s
+  ep   7/12  loss 0.2022  hm 0.1012  wh 0.282  off 0.0728      98 img/s
+  ep   8/12  loss 0.1832  hm 0.0895  wh 0.256  off 0.0680      98 img/s
+  ep   9/12  loss 0.1684  hm 0.0820  wh 0.228  off 0.0636      99 img/s
+  ep  10/12  loss 0.1575  hm 0.0773  wh 0.204  off 0.0598     101 img/s   tune mAP 0.8970
+  ep  11/12  loss 0.1464  hm 0.0705  wh 0.195  off 0.0564      99 img/s
+  ep  12/12  loss 0.1409  hm 0.0670  wh 0.188  off 0.0551     101 img/s   tune mAP 0.9069
+
+[cnn/both] easy  (trained here)
+  detections            18601 (9.30/img)   gt 9049 (4.52/img)
+  mAP@[.5:.95]          0.9060        AP50 0.9958   AP75 0.9896
+  class-agnostic mAP    0.9058        AP50 0.9998   <- localisation only
+  detection rate @.5    0.9363        <- found at all, class ignored
+  per class             box 0.906   cylinder 0.905   sphere 0.907
+  by size (terciles)    0-25px 0.796   25-31px 0.847   31-999px 0.817
+  recall by visibility  0.0-0.5 1.000 (n=48)   0.5-0.9 1.000 (n=846)   0.9-1.0 1.000 (n=8155)
+  latency               3.56 ms/img
+
+[cnn/both] hard  (TRAINED ON easy)
+  detections            19785 (9.89/img)   gt 8992 (4.50/img)
+  mAP@[.5:.95]          0.5065        AP50 0.7043   AP75 0.5612
+  class-agnostic mAP    0.5251        AP50 0.7598   <- localisation only
+  detection rate @.5    0.5613        <- found at all, class ignored
+  per class             box 0.515   cylinder 0.498   sphere 0.507
+  by size (terciles)    0-25px 0.337   25-32px 0.405   32-999px 0.484
+  recall by visibility  0.0-0.5 0.250 (n=53)   0.5-0.9 0.606 (n=861)   0.9-1.0 0.763 (n=8078)
+  latency               3.65 ms/img
+
+======================================================================
+hard/none   (5/8, 2824s elapsed)
+======================================================================
+regime hard  aug none  params 380,631  fit 6000 tune 1500 val 2000  12 epochs x 187 steps
+  ep   1/12  loss 1.9749  hm 1.3132  wh 3.675  off 0.2942     126 img/s
+  ep   2/12  loss 0.6279  hm 0.4172  wh 0.649  off 0.1458     126 img/s
+  ep   3/12  loss 0.4660  hm 0.2946  wh 0.484  off 0.1230     127 img/s
+  ep   4/12  loss 0.3715  hm 0.2150  wh 0.432  off 0.1134     127 img/s
+  ep   5/12  loss 0.2951  hm 0.1562  wh 0.386  off 0.1004     125 img/s   tune mAP 0.6677
+  ep   6/12  loss 0.2483  hm 0.1227  wh 0.352  off 0.0904     123 img/s
+  ep   7/12  loss 0.2050  hm 0.0942  wh 0.301  off 0.0807     118 img/s
+  ep   8/12  loss 0.1757  hm 0.0730  wh 0.271  off 0.0757     125 img/s
+  ep   9/12  loss 0.1474  hm 0.0532  wh 0.257  off 0.0686     122 img/s
+  ep  10/12  loss 0.1248  hm 0.0382  wh 0.225  off 0.0641     124 img/s   tune mAP 0.8752
+  ep  11/12  loss 0.1084  hm 0.0283  wh 0.208  off 0.0593     125 img/s
+  ep  12/12  loss 0.1010  hm 0.0244  wh 0.199  off 0.0567     125 img/s   tune mAP 0.8776
+
+[cnn/none] hard  (trained here)
+  detections            19177 (9.59/img)   gt 8992 (4.50/img)
+  mAP@[.5:.95]          0.8735        AP50 0.9893   AP75 0.9852
+  class-agnostic mAP    0.8749        AP50 0.9898   <- localisation only
+  detection rate @.5    0.9099        <- found at all, class ignored
+  per class             box 0.872   cylinder 0.872   sphere 0.876
+  by size (terciles)    0-25px 0.734   25-32px 0.788   32-999px 0.821
+  recall by visibility  0.0-0.5 0.897 (n=53)   0.5-0.9 0.998 (n=861)   0.9-1.0 1.000 (n=8078)
+  latency               3.83 ms/img
+
+[cnn/none] easy  (TRAINED ON hard)
+  detections            19760 (9.88/img)   gt 9049 (4.52/img)
+  mAP@[.5:.95]          0.8683        AP50 0.9904   AP75 0.9835
+  class-agnostic mAP    0.8681        AP50 0.9895   <- localisation only
+  detection rate @.5    0.9070        <- found at all, class ignored
+  per class             box 0.875   cylinder 0.859   sphere 0.871
+  by size (terciles)    0-25px 0.722   25-31px 0.782   31-999px 0.811
+  recall by visibility  0.0-0.5 0.933 (n=48)   0.5-0.9 1.000 (n=846)   0.9-1.0 1.000 (n=8155)
+  latency               4.15 ms/img
+
+======================================================================
+hard/photo   (6/8, 3439s elapsed)
+======================================================================
+regime hard  aug photo  params 380,631  fit 6000 tune 1500 val 2000  12 epochs x 187 steps
+  ep   1/12  loss 2.1660  hm 1.4755  wh 3.901  off 0.3005     100 img/s
+  ep   2/12  loss 0.6838  hm 0.4549  wh 0.737  off 0.1552      98 img/s
+  ep   3/12  loss 0.4969  hm 0.3203  wh 0.512  off 0.1254      95 img/s
+  ep   4/12  loss 0.3931  hm 0.2380  wh 0.439  off 0.1112      91 img/s
+  ep   5/12  loss 0.3170  hm 0.1765  wh 0.385  off 0.1020      95 img/s   tune mAP 0.7831
+  ep   6/12  loss 0.2669  hm 0.1412  wh 0.352  off 0.0905      93 img/s
+  ep   7/12  loss 0.2270  hm 0.1134  wh 0.312  off 0.0824      88 img/s
+  ep   8/12  loss 0.2001  hm 0.0939  wh 0.286  off 0.0777      93 img/s
+  ep   9/12  loss 0.1721  hm 0.0736  wh 0.263  off 0.0723      91 img/s
+  ep  10/12  loss 0.1508  hm 0.0592  wh 0.239  off 0.0677      91 img/s   tune mAP 0.8730
+  ep  11/12  loss 0.1329  hm 0.0472  wh 0.223  off 0.0634      92 img/s
+  ep  12/12  loss 0.1251  hm 0.0424  wh 0.215  off 0.0612      93 img/s   tune mAP 0.8779
+
+[cnn/photo] hard  (trained here)
+  detections            18252 (9.13/img)   gt 8992 (4.50/img)
+  mAP@[.5:.95]          0.8742        AP50 0.9887   AP75 0.9840
+  class-agnostic mAP    0.8762        AP50 0.9897   <- localisation only
+  detection rate @.5    0.9118        <- found at all, class ignored
+  per class             box 0.875   cylinder 0.873   sphere 0.875
+  by size (terciles)    0-25px 0.733   25-32px 0.796   32-999px 0.855
+  recall by visibility  0.0-0.5 0.932 (n=53)   0.5-0.9 0.999 (n=861)   0.9-1.0 1.000 (n=8078)
+  latency               3.91 ms/img
+
+[cnn/photo] easy  (TRAINED ON hard)
+  detections            18361 (9.18/img)   gt 9049 (4.52/img)
+  mAP@[.5:.95]          0.8643        AP50 0.9881   AP75 0.9835
+  class-agnostic mAP    0.8662        AP50 0.9897   <- localisation only
+  detection rate @.5    0.9041        <- found at all, class ignored
+  per class             box 0.870   cylinder 0.857   sphere 0.865
+  by size (terciles)    0-25px 0.718   25-31px 0.774   31-999px 0.818
+  recall by visibility  0.0-0.5 0.917 (n=48)   0.5-0.9 0.997 (n=846)   0.9-1.0 1.000 (n=8155)
+  latency               5.35 ms/img
+
+======================================================================
+hard/geom   (7/8, 4244s elapsed)
+======================================================================
+regime hard  aug geom  params 380,631  fit 6000 tune 1500 val 2000  12 epochs x 187 steps
+  ep   1/12  loss 1.9816  hm 1.3132  wh 3.736  off 0.2948     114 img/s
+  ep   2/12  loss 0.6471  hm 0.4296  wh 0.677  off 0.1499     118 img/s
+  ep   3/12  loss 0.4750  hm 0.3016  wh 0.479  off 0.1255     115 img/s
+  ep   4/12  loss 0.3749  hm 0.2228  wh 0.430  off 0.1091     110 img/s
+  ep   5/12  loss 0.3091  hm 0.1720  wh 0.377  off 0.0994     109 img/s   tune mAP 0.7161
+  ep   6/12  loss 0.2678  hm 0.1441  wh 0.342  off 0.0896     114 img/s
+  ep   7/12  loss 0.2299  hm 0.1199  wh 0.297  off 0.0803     114 img/s
+  ep   8/12  loss 0.2103  hm 0.1084  wh 0.271  off 0.0748     110 img/s
+  ep   9/12  loss 0.1909  hm 0.0956  wh 0.253  off 0.0700     110 img/s
+  ep  10/12  loss 0.1753  hm 0.0872  wh 0.226  off 0.0655     114 img/s   tune mAP 0.8875
+  ep  11/12  loss 0.1651  hm 0.0819  wh 0.211  off 0.0621     114 img/s
+  ep  12/12  loss 0.1603  hm 0.0792  wh 0.204  off 0.0607     113 img/s   tune mAP 0.8920
+
+[cnn/geom] hard  (trained here)
+  detections            18967 (9.48/img)   gt 8992 (4.50/img)
+  mAP@[.5:.95]          0.8893        AP50 0.9899   AP75 0.9859
+  class-agnostic mAP    0.8896        AP50 0.9900   <- localisation only
+  detection rate @.5    0.9224        <- found at all, class ignored
+  per class             box 0.889   cylinder 0.890   sphere 0.889
+  by size (terciles)    0-25px 0.755   25-32px 0.817   32-999px 0.851
+  recall by visibility  0.0-0.5 0.921 (n=53)   0.5-0.9 0.999 (n=861)   0.9-1.0 1.000 (n=8078)
+  latency               4.85 ms/img
+
+[cnn/geom] easy  (TRAINED ON hard)
+  detections            18604 (9.30/img)   gt 9049 (4.52/img)
+  mAP@[.5:.95]          0.8844        AP50 0.9897   AP75 0.9890
+  class-agnostic mAP    0.8851        AP50 0.9900   <- localisation only
+  detection rate @.5    0.9189        <- found at all, class ignored
+  per class             box 0.888   cylinder 0.882   sphere 0.883
+  by size (terciles)    0-25px 0.734   25-31px 0.807   31-999px 0.848
+  recall by visibility  0.0-0.5 0.915 (n=48)   0.5-0.9 1.000 (n=846)   0.9-1.0 1.000 (n=8155)
+  latency               4.76 ms/img
+
+======================================================================
+hard/both   (8/8, 4919s elapsed)
+======================================================================
+regime hard  aug both  params 380,631  fit 6000 tune 1500 val 2000  12 epochs x 187 steps
+  ep   1/12  loss 2.1633  hm 1.4670  wh 3.924  off 0.3038      89 img/s
+  ep   2/12  loss 0.6875  hm 0.4609  wh 0.738  off 0.1527      90 img/s
+  ep   3/12  loss 0.5059  hm 0.3304  wh 0.504  off 0.1250      88 img/s
+  ep   4/12  loss 0.4151  hm 0.2568  wh 0.446  off 0.1137      84 img/s
+  ep   5/12  loss 0.3330  hm 0.1924  wh 0.383  off 0.1023      85 img/s   tune mAP 0.7103
+  ep   6/12  loss 0.2861  hm 0.1594  wh 0.353  off 0.0914      87 img/s
+  ep   7/12  loss 0.2510  hm 0.1360  wh 0.314  off 0.0836      87 img/s
+  ep   8/12  loss 0.2298  hm 0.1217  wh 0.290  off 0.0792      86 img/s
+  ep   9/12  loss 0.2104  hm 0.1108  wh 0.267  off 0.0729      87 img/s
+  ep  10/12  loss 0.1925  hm 0.0997  wh 0.244  off 0.0683      88 img/s   tune mAP 0.8857
+  ep  11/12  loss 0.1817  hm 0.0936  wh 0.229  off 0.0652      85 img/s
+  ep  12/12  loss 0.1768  hm 0.0909  wh 0.223  off 0.0637      85 img/s   tune mAP 0.8914
+
+[cnn/both] hard  (trained here)
+  detections            19266 (9.63/img)   gt 8992 (4.50/img)
+  mAP@[.5:.95]          0.8857        AP50 0.9897   AP75 0.9856
+  class-agnostic mAP    0.8866        AP50 0.9900   <- localisation only
+  detection rate @.5    0.9195        <- found at all, class ignored
+  per class             box 0.885   cylinder 0.883   sphere 0.889
+  by size (terciles)    0-25px 0.752   25-32px 0.805   32-999px 0.834
+  recall by visibility  0.0-0.5 0.909 (n=53)   0.5-0.9 0.999 (n=861)   0.9-1.0 1.000 (n=8078)
+  latency               5.24 ms/img
+
+[cnn/both] easy  (TRAINED ON hard)
+  detections            19423 (9.71/img)   gt 9049 (4.52/img)
+  mAP@[.5:.95]          0.8806        AP50 0.9897   AP75 0.9857
+  class-agnostic mAP    0.8804        AP50 0.9900   <- localisation only
+  detection rate @.5    0.9163        <- found at all, class ignored
+  per class             box 0.885   cylinder 0.877   sphere 0.880
+  by size (terciles)    0-25px 0.759   25-31px 0.801   31-999px 0.848
+  recall by visibility  0.0-0.5 0.933 (n=48)   0.5-0.9 1.000 (n=846)   0.9-1.0 1.000 (n=8155)
+  latency               5.34 ms/img
+
+======================================================================
+step 4 -- mAP@[.5:.95] on each val split
+======================================================================
+  trained on    aug |  easy val  hard val |    drop |  train s
+        easy   none |    0.9013    0.1465 | +0.7548 |      595
+        easy  photo |    0.8945    0.5214 | +0.3732 |      783
+        easy   geom |    0.9093    0.1808 | +0.7284 |      608
+        easy   both |    0.9060    0.5065 | +0.3995 |      737
+        hard   none |    0.8683    0.8735 | -0.0052 |      589
+        hard  photo |    0.8643    0.8742 | -0.0099 |      782
+        hard   geom |    0.8844    0.8893 | -0.0049 |      648
+        hard   both |    0.8806    0.8857 | -0.0051 |      839
+
+total 96.4 min   wrote runs/ablation.json

@@ -1,8 +1,13 @@
 data/
-runs/*
-!runs/*.json
 __pycache__/
-*.onnx
-*.pt
 out/*
 !out/*.png
+# runs/: keep everything a reader needs to check the README without retraining --
+# metrics json, per-epoch transcripts, the exported graph and the two checkpoints
+# (1.5 MB each). Only scratch files are dropped.
+runs/*
+!runs/*.json
+!runs/*.txt
+!runs/detector.onnx
+!runs/det_hard_none.pt
+!runs/det_easy_none.pt

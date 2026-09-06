@@ -1,0 +1,38 @@
+regime hard  aug none  params 380,631  fit 10500 tune 1500 val 2000  25 epochs x 328 steps
+  ep   1/25  loss 1.6101  hm 1.0572  wh 3.011  off 0.2518     126 img/s
+  ep   2/25  loss 0.5939  hm 0.3943  wh 0.650  off 0.1346     122 img/s
+  ep   3/25  loss 0.4345  hm 0.2793  wh 0.454  off 0.1098     122 img/s
+  ep   4/25  loss 0.3460  hm 0.2044  wh 0.396  off 0.1021     104 img/s
+  ep   5/25  loss 0.2834  hm 0.1535  wh 0.340  off 0.0959      90 img/s   tune mAP 0.7982
+  ep   6/25  loss 0.2472  hm 0.1250  wh 0.327  off 0.0895     116 img/s
+  ep   7/25  loss 0.2227  hm 0.1077  wh 0.296  off 0.0855     128 img/s
+  ep   8/25  loss 0.2054  hm 0.0953  wh 0.282  off 0.0820     121 img/s
+  ep   9/25  loss 0.1850  hm 0.0823  wh 0.251  off 0.0776     122 img/s
+  ep  10/25  loss 0.1717  hm 0.0747  wh 0.236  off 0.0734     123 img/s   tune mAP 0.8709
+  ep  11/25  loss 0.1620  hm 0.0674  wh 0.228  off 0.0718     123 img/s
+  ep  12/25  loss 0.1514  hm 0.0600  wh 0.216  off 0.0698     124 img/s
+  ep  13/25  loss 0.1428  hm 0.0541  wh 0.200  off 0.0687     128 img/s
+  ep  14/25  loss 0.1325  hm 0.0474  wh 0.196  off 0.0655     114 img/s
+  ep  15/25  loss 0.1229  hm 0.0400  wh 0.185  off 0.0644     121 img/s   tune mAP 0.8919
+  ep  16/25  loss 0.1130  hm 0.0336  wh 0.180  off 0.0614     124 img/s
+  ep  17/25  loss 0.1031  hm 0.0258  wh 0.174  off 0.0600     117 img/s
+  ep  18/25  loss 0.0912  hm 0.0187  wh 0.166  off 0.0560     122 img/s
+  ep  19/25  loss 0.0798  hm 0.0113  wh 0.154  off 0.0531     117 img/s
+  ep  20/25  loss 0.0721  hm 0.0070  wh 0.147  off 0.0505     117 img/s   tune mAP 0.9087
+  ep  21/25  loss 0.0663  hm 0.0044  wh 0.142  off 0.0476     125 img/s
+  ep  22/25  loss 0.0622  hm 0.0032  wh 0.136  off 0.0453     120 img/s
+  ep  23/25  loss 0.0595  hm 0.0027  wh 0.133  off 0.0435     123 img/s
+  ep  24/25  loss 0.0577  hm 0.0023  wh 0.131  off 0.0423     123 img/s
+  ep  25/25  loss 0.0567  hm 0.0021  wh 0.129  off 0.0417     112 img/s   tune mAP 0.9121
+
+[cnn/none] hard
+  detections            11195 (5.60/img)   gt 8992 (4.50/img)
+  mAP@[.5:.95]          0.9107        AP50 0.9899   AP75 0.9896
+  class-agnostic mAP    0.9099        AP50 0.9900   <- localisation only
+  detection rate @.5    0.9433        <- found at all, class ignored
+  per class             box 0.914   cylinder 0.910   sphere 0.908
+  by size (terciles)    0-25px 0.805   25-32px 0.854   32-999px 0.884
+  recall by visibility  0.0-0.5 0.910 (n=53)   0.5-0.9 0.999 (n=861)   0.9-1.0 1.000 (n=8078)
+  latency               3.87 ms/img
+
+wrote runs/det_hard_none.json
