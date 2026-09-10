@@ -3,6 +3,10 @@
 # the artifacts in git. Detached (setsid), so it does not die with the terminal.
 # If the session is still open and the results were committed by hand first,
 # this finds nothing to commit and exits quietly.
+#
+# It commits and stops there. An unattended script does not get to publish:
+# a commit is local and reversible, a push is neither, and a chain that runs
+# after the terminal is gone has nobody watching what it puts on the internet.
 set -u
 cd "$(dirname "$0")"
 PY="${PYTHON:-python3}"
@@ -33,5 +37,5 @@ if ! git diff --cached --quiet; then
 
 Committed by the unattended chain. README prose for these steps is written
 separately -- these are the raw numbers so nothing is lost if the session ends."
-  git push -q origin master && echo "pushed $(date -Iseconds)" >> runs/log_chain.txt
+  echo "committed $(date -Iseconds) -- NOT pushed, push by hand" >> runs/log_chain.txt
 fi
