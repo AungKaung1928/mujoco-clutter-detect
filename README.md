@@ -9,6 +9,8 @@ result. Block 1 ([`mujoco-cube-pose-cnn`](https://github.com/AungKaung1928/mujoc
 regressed one pose from a top-down view and closed at 0.59 mm median error with a
 27k-parameter soft-argmax head.
 
+**Walkthrough:** https://aungkaung1928.github.io/projects/clutter-detect.html — the same project explained end to end, file by file.
+
 ## Why the camera moved
 
 Block 1's camera looked straight down. That view has an exact affine pixel↔world
