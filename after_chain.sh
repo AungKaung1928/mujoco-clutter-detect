@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Safety net: if the chat is closed before the chain finishes, this still lands
+# Safety net: if the terminal is closed before the chain finishes, this still lands
 # the artifacts in git. Detached (setsid), so it does not die with the terminal.
 # If the session is still open and the results were committed by hand first,
 # this finds nothing to commit and exits quietly.
 set -u
 cd "$(dirname "$0")"
-source ~/personal/ml/env.sh
+PY="${PYTHON:-python3}"
+export MUJOCO_GL="${MUJOCO_GL:-glfw}"
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
+export MKL_NUM_THREADS="${MKL_NUM_THREADS:-$OMP_NUM_THREADS}"
 
 # wait up to 4 h for the chain, then give up rather than hang forever
 for _ in $(seq 1 960); do
@@ -14,7 +17,7 @@ for _ in $(seq 1 960); do
 done
 
 [ -f runs/det_hard_none.pt ] && \
-  nice -n 10 python view_cnn.py --ckpt runs/det_hard_none.pt --regime hard \
+  nice -n 10 "$PY" view_cnn.py --ckpt runs/det_hard_none.pt --regime hard \
       --out out/cnn_detections.png > runs/log_fig.txt 2>&1
 
 {

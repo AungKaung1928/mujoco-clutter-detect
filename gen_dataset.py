@@ -11,7 +11,7 @@ That is N extra renders per scene, which is the dominant cost -- so we skip it
 for any object whose visible box overlaps nothing, because such an object is
 provably unoccluded. Most objects in a scene are.
 
-Usage (from ~/personal/ml/mujoco-clutter-detect, after `source ../env.sh`):
+Usage (from the repo root, with the virtualenv active):
     python gen_dataset.py --regime hard --n 200 --smoke
     python gen_dataset.py --regime easy --n 12000
     python gen_dataset.py --regime hard --n 12000

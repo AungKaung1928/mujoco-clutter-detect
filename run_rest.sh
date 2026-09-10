@@ -8,15 +8,18 @@
 # and the loop never exited. Serialisation is now handled by the caller.
 set -u
 cd "$(dirname "$0")"
-source ~/personal/ml/env.sh
+PY="${PYTHON:-python3}"
+export MUJOCO_GL="${MUJOCO_GL:-glfw}"
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
+export MKL_NUM_THREADS="${MKL_NUM_THREADS:-$OMP_NUM_THREADS}"
 
 echo "[$(date +%T)] step 3 easy"
-nice -n 10 python train_det.py --regime easy --aug none --epochs 20 \
+nice -n 10 "$PY" train_det.py --regime easy --aug none --epochs 20 \
      --save runs/det_easy_none.json --ckpt runs/det_easy_none.pt > runs/log_easy_none.txt 2>&1
 echo "[$(date +%T)] step 4 ablation"
-nice -n 10 python run_ablation.py --epochs 12 --fit-n 6000 \
+nice -n 10 "$PY" run_ablation.py --epochs 12 --fit-n 6000 \
      --out runs/ablation.json > runs/log_ablation.txt 2>&1
 echo "[$(date +%T)] step 5 onnx"
-nice -n 10 python export_onnx.py --ckpt runs/det_hard_none.pt --regime hard \
+nice -n 10 "$PY" export_onnx.py --ckpt runs/det_hard_none.pt --regime hard \
      --save runs/onnx.json > runs/log_onnx.txt 2>&1
 echo "[$(date +%T)] all done"

@@ -1,10 +1,9 @@
 """Open the task scene in MuJoCo's interactive viewer -- orbit, zoom, inspect.
 
-This must be run from YOUR terminal, not from a tool call: it opens a window and
+Run this from an interactive terminal, not from a script: it opens a window and
 blocks until you close it. Under WSL the window comes from WSLg and the rendering
 is done on the CPU (llvmpipe), so expect it to be smooth but not fast.
 
-    source ~/personal/ml/env.sh
     python view_live.py
 
 Left-drag orbits, right-drag pans, scroll zooms. Press Tab for the control panel.

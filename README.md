@@ -100,8 +100,14 @@ top of every image — dead pixels, and a trivial cue for the network to latch o
 
 ## Reproducing
 
+From a fresh clone.
+
 ```bash
-source ~/personal/ml/env.sh
+git clone https://github.com/AungKaung1928/mujoco-clutter-detect.git
+cd mujoco-clutter-detect
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt
+
 python gen_dataset.py --regime hard --n 200 --smoke   # smallest useful run
 python gen_dataset.py --regime hard --n 12000
 python gen_dataset.py --regime easy --n 12000
@@ -122,8 +128,12 @@ Everything the README quotes is tracked: `runs/*.json` (metrics), `runs/log_*.tx
 Or check the claims without regenerating anything:
 
 ```bash
-cd ~/personal/ml/mujoco-clutter-detect && ./verify.sh
+./verify.sh
 ```
+
+`verify.sh` defaults `MUJOCO_GL` to `glfw` and pins the thread count, because
+both change the numbers. Override either if your machine wants a different
+rendering backend.
 
 Tiered on purpose. The first two tiers need no dataset and no weights — they run
 the 15 hand-computed AP cases and the encode/decode inverse check, which are the

@@ -8,7 +8,22 @@
 # say how to regenerate them rather than failing.
 set -u
 cd "$(dirname "$0")"
-source ~/personal/ml/env.sh
+# Python comes from whatever environment is active. A venv is expected but not
+# required; requirements.txt lists everything this repo imports.
+PY="${PYTHON:-python3}"
+if ! "$PY" -c 'import numpy, torch, cv2, mujoco, onnxruntime' 2>/dev/null; then
+  echo "dependencies are not importable with '$PY'. From the repo root:" >&2
+  echo "    python3 -m venv .venv && . .venv/bin/activate" >&2
+  echo "    pip install -r requirements.txt" >&2
+  exit 1
+fi
+
+# Both honour whatever is already exported. The defaults are what every number
+# in the README was measured with: software GL, and a thread count held fixed
+# so two runs on the same machine are comparable.
+export MUJOCO_GL="${MUJOCO_GL:-glfw}"
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-8}"
+export MKL_NUM_THREADS="${MKL_NUM_THREADS:-$OMP_NUM_THREADS}"
 
 hr() { printf '\n=== %s ===\n' "$1"; }
 have_data() { [ -f "data/hard/val_images.npy" ]; }
@@ -17,12 +32,12 @@ have_ckpt() { [ -f "runs/det_hard_none.pt" ]; }
 hr "1/5  AP metric -- 15 hand-computed cases"
 # Every expected value derived on paper. A test that records what the code
 # printed last time proves only that the code is deterministic.
-python test_ap.py || exit 1
+"$PY" test_ap.py || exit 1
 
 hr "2/5  target encoding -- encode/decode are inverses"
 # Run before any training: this bug class does not crash, it trains to low loss
 # and puts the boxes in the wrong place.
-python test_detector.py || exit 1
+"$PY" test_detector.py || exit 1
 
 if ! have_data; then
   hr "3-5/5  skipped -- no dataset"
@@ -38,10 +53,10 @@ MSG
 fi
 
 hr "3/5  metric end-to-end -- known inputs, known outputs"
-python sanity_ap.py || exit 1
+"$PY" sanity_ap.py || exit 1
 
 hr "4/5  classical baseline on val"
-python baseline_cv.py --regime hard --methods bgsub+ws || exit 1
+"$PY" baseline_cv.py --regime hard --methods bgsub+ws || exit 1
 
 if have_ckpt; then
   hr "5/5  detector on val + qualitative figure"

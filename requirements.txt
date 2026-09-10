@@ -1,5 +1,5 @@
-# installed in ~/personal/ml/.venv (uv, CPU-only). Listed, not pinned to a lockfile,
-# because the venv is shared across every block of the ML track.
+# CPU-only builds throughout -- there is no CUDA anywhere in this project.
+# Versions are the ones every number in the README was measured on.
 torch==2.14.0+cpu
 torchvision==0.29.0+cpu
 mujoco==3.12.0
