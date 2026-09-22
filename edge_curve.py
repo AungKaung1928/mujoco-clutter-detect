@@ -64,11 +64,30 @@ def table(pts):
 def draw(pts, out):
     fig, ax = plt.subplots(figsize=(7.2, 4.6), dpi=150)
     ink, accent, muted = "#2b2f36", "#4f7d93", "#9aa3ad"
-    for name, ms, m, _, _ in pts:
-        ax.scatter(ms, m, s=42, color=accent if "INT8" in name or "pruned" in name else ink,
-                   zorder=3)
-        ax.annotate(name, (ms, m), xytext=(6, 4), textcoords="offset points", fontsize=8,
-                    color=ink)
+    # Labels: points closer than 0.3 ms form a cluster. A lone point is labelled
+    # to its right; a cluster is listed to its left, top down, with thin leaders,
+    # so the INT8 graphs that all land near 1.4 ms stay readable.
+    groups, prev_ms = [], None
+    for pt in sorted(pts, key=lambda t: t[1]):
+        if prev_ms is not None and pt[1] - prev_ms < 0.3:
+            groups[-1].append(pt)
+        else:
+            groups.append([pt])
+        prev_ms = pt[1]
+    for g in groups:
+        for name, ms, m, _, _ in g:
+            ax.scatter(ms, m, s=42, color=accent if "INT8" in name or "pruned" in name else ink,
+                       zorder=3)
+        if len(g) == 1:
+            name, ms, m, _, _ = g[0]
+            ax.annotate(name, (ms, m), xytext=(8, 4), textcoords="offset points", fontsize=8,
+                        color=ink)
+            continue
+        x_left = min(t[1] for t in g)
+        for i, (name, ms, m, _, _) in enumerate(sorted(g, key=lambda t: -t[2])):
+            ax.annotate(name, (ms, m), xytext=(x_left - 0.12, m + 0.03 - 0.035 * i),
+                        textcoords="data", fontsize=8, color=ink, ha="right", va="center",
+                        arrowprops=dict(arrowstyle="-", lw=0.4, color=muted))
     ax.scatter(CLASSICAL_MS, CLASSICAL_MAP, s=42, color=muted, zorder=3)
     ax.annotate("classical bgsub+ws", (CLASSICAL_MS, CLASSICAL_MAP), xytext=(6, 4),
                 textcoords="offset points", fontsize=8, color=muted)
@@ -77,7 +96,7 @@ def draw(pts, out):
     ax.set_ylabel("mAP@[.5:.95], hard/val")
     ax.set_title("Edge-AI step: what each graph costs on one core", fontsize=10, loc="left")
     ax.grid(True, lw=0.4, alpha=0.5)
-    ax.set_ylim(0.0, 1.0)
+    ax.set_ylim(0.4, 1.0)
     ax.set_xlim(left=0.0)
     for s in ("top", "right"):
         ax.spines[s].set_visible(False)

@@ -16,3 +16,5 @@ runs/*
 !runs/detector_pruned_*.onnx
 # smoke-subset outputs are never tracked
 runs/*_smoke*
+# the pre-fine-tune pruned graphs and the pre-processed fp32 graph are intermediates, not plotted
+runs/detector_pruned_*_pre.onnx

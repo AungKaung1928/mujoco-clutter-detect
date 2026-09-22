@@ -33,6 +33,7 @@ quantization noise takes first.
 """
 import argparse
 import json
+import hashlib
 import os
 import time
 
@@ -125,6 +126,16 @@ def score(path, imgs, gts, vf, size, n_eval, threads=1):
             "vis_n": {f"{lo:.1f}-{hi:.1f}": v["n_gt"] for (lo, hi), v in rv.items()}}
 
 
+def sha256(path):
+    """Two calibration methods can land on the same scales and produce the same
+    file. That is a result, not a coincidence to be reported as two rows."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def n_quantized_nodes(path):
     m = onnx.load(path)
     ops = [n.op_type for n in m.graph.node]
@@ -173,6 +184,7 @@ def main():
         sc = score(out, va_i, gts, vf, size, args.n_eval)
         lat = {f"{t}t": time_onnx(out, xs, args.n_time, t) for t in args.threads}
         res = {"method": method, "path": out, "bytes": os.path.getsize(out),
+               "sha256": sha256(out),
                "calib_images": 0 if method == "dynamic" else args.calib,
                "calib_split": "train", "quantize_s": q_s, "nodes": n_quantized_nodes(out),
                "score": sc, "latency_ms": lat, "ref": ref,
@@ -183,6 +195,10 @@ def main():
                "measured": {"n_eval": sc["n_images"], "n_time": args.n_time,
                             "load1_at_start": load1, "regime": args.regime,
                             "decode_note": "model only; add decode_ms from runs/onnx.json"}}
+        same = [r["method"] for r in rows if r["sha256"] == res["sha256"]]
+        if same:
+            print(f"  note: identical file to {', '.join(same)} (same SHA-256). "
+                  f"The calibration ran; it chose the same ranges. One graph, not two.")
         rows.append(res)
         json.dump(res, open(f"runs/quant_{method}{tag}.json", "w"), indent=2)
         print(f"{method:10s} mAP {sc['mAP']:.4f} ({-res['mAP_drop']:+.4f})   "

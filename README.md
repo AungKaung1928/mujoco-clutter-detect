@@ -4,10 +4,10 @@ Multi-object detection on a simulated tabletop. Three classes (`box`, `cylinder`
 `sphere`), 3–6 objects per scene, a tilted camera, and labels read straight out of
 the renderer's segmentation buffer.
 
-Block 2 of the ML track, **closed 2026-09-06** — every step below through 5 has a
-measured result. **Step 6 (INT8 quantization and structured pruning) is code
-complete and smoke-tested, not yet measured**; its numbers are marked
-`TODO(measure)` with the command that produces each one. Block 1 ([`mujoco-cube-pose-cnn`](https://github.com/AungKaung1928/mujoco-cube-pose-cnn))
+Block 2 of the ML track, **closed 2026-09-06**, reopened for step 6 and **closed
+again 2026-09-23**: static INT8 through ONNX Runtime runs the detector in **1.38 ms
+on one thread** against fp32's 3.57 ms and the classical pipeline's 2.13 ms, at a
+mAP cost of 0.0010; structured pruning was measured and rejected. Block 1 ([`mujoco-cube-pose-cnn`](https://github.com/AungKaung1928/mujoco-cube-pose-cnn))
 regressed one pose from a top-down view and closed at 0.59 mm median error with a
 27k-parameter soft-argmax head.
 
@@ -101,11 +101,12 @@ top of every image — dead pixels, and a trivial cue for the network to latch o
    end to end on 8 threads against the classical pipeline's 2.13 ms. Block 1's
    "runtime is the cost" finding holds only in part, and the first measurement
    had to be thrown away — both recorded below.
-6. **Edge-AI: INT8 and pruning** — code complete, **not yet measured**. Static
-   post-training INT8 through ONNX Runtime with three calibration methods, a
-   dynamic-quantization row for contrast, structured channel pruning with the
-   channels physically removed, and one mAP-versus-latency figure on a single
-   thread — the case step 5 left the detector losing to the classical pipeline.
+6. **Edge-AI: INT8 and pruning** — done, measured 2026-09-23. Static
+   post-training INT8 through ONNX Runtime, three calibration methods: **1.38 ms on
+   one thread at −0.0010 mAP**, under the classical 2.13 ms that step 5 lost to.
+   Structured channel pruning with the channels physically removed costs 0.019 /
+   0.065 mAP for 20 / 32 % less latency, so it is the wrong tool here. One
+   mAP-versus-latency figure on a single thread holds every graph.
 
 ## Reproducing
 
@@ -142,6 +143,15 @@ Or check the claims without regenerating anything:
 ```bash
 ./verify.sh
 ```
+
+Or in a container, which runs the three test files that need no data (the AP
+metric, the target encoding, the step-6 checks):
+
+```bash
+docker build -t mujoco-clutter-detect . && docker run --rm mujoco-clutter-detect
+```
+
+Image built on 2026-09-23 and its default command passed inside it (15 AP cases, 7 detector tests and 7 step-6 tests), image size 1.97 GB.
 
 `verify.sh` defaults `MUJOCO_GL` to `glfw` and pins the thread count, because
 both change the numbers. Override either if your machine wants a different
@@ -640,10 +650,7 @@ has the same problem; its footnote points here.
 
 ### Step 6 — Edge-AI: INT8 and pruning
 
-**Status: code complete, smoke-tested on 100 images, not yet measured.** Every
-number below is `TODO(measure)` until the full `hard/val` run is done on an idle
-box with the load average recorded, per finding 5 of step 5. The smoke run
-exists only to prove the pipeline executes end to end and is not quoted.
+**Status: measured 2026-09-23 on the full `hard/val` split (2000 images), box idle, load average 0.28 at start.** The smoke run that preceded it is described at the end of this section and is not quoted.
 
 Step 5 ended with the detector at 3.69 ms on one thread against the classical
 pipeline's 2.13 ms — slower on the core budget a ROS 2 node is most likely to
@@ -655,11 +662,12 @@ per multiply, and fewer multiplies.
 
 Static, not dynamic, because this is a convolutional network. Dynamic
 quantization stores INT8 weights and computes each activation's scale at run
-time from its observed range; on a CNN that leaves the convolutions in fp32
-with a quantize step in front of each, so it saves bytes and buys no speed.
-Static quantization fixes the activation scales once, from a calibration pass,
-and the runtime executes the whole conv chain in INT8 with fused
-requantization. Both are measured; the dynamic row is there to show the gap.
+time from its observed range, so every convolution pays for a range pass and a
+quantize step before it runs. Static quantization fixes the activation scales
+once, from a calibration pass, and the runtime executes the whole conv chain in
+INT8 with fused requantization. Both are measured; the dynamic row is there to
+show the gap, and the gap came out smaller on one thread than the paragraph
+above expected (the table says how much).
 
 The graph is written in QDQ form (standard `QuantizeLinear` /
 `DequantizeLinear` nodes, fused by ONNX Runtime into `QLinearConv` at session
@@ -685,13 +693,29 @@ noise takes first, and the ones the classical pipeline could never find.
 
 | graph | mAP | Δ mAP | ms 1 thread | ms 4 threads | MB | recall vis<0.5 |
 |---|---|---|---|---|---|---|
-| fp32 ORT (same pre-processed graph) | TODO(measure) | — | | | 1.53 | |
-| INT8 static, MinMax | TODO(measure) | | | | | |
-| INT8 static, Percentile 99.99 | TODO(measure) | | | | | |
-| INT8 static, Entropy | TODO(measure) | | | | | |
-| INT8 dynamic (weights only) | TODO(measure) | | | | | |
+| fp32 ORT (same pre-processed graph) | 0.9107 | — | 3.57 | 1.52 | 1.53 | 0.910 |
+| INT8 static, MinMax | 0.9097 | -0.0010 | 1.38 | 0.61 | 0.42 | 0.910 |
+| INT8 static, Percentile 99.99 | 0.9060 | -0.0048 | 1.38 | 0.62 | 0.42 | 0.910 |
+| INT8 static, Entropy | 0.9097 | -0.0010 | 1.35 | 0.60 | 0.42 | 0.910 |
+| INT8 dynamic (weights only) | 0.9097 | -0.0010 | 1.82 | 1.54 | 0.41 | 0.898 |
 
 Model time only; add step 5's 0.18 ms decode to every row for end to end.
+
+Two rows there are the same file. `detector_int8_minmax.onnx` and
+`detector_int8_entropy.onnx` have the same SHA-256, so the MinMax and Entropy
+rows are one graph scored twice and timed twice, and the 1.38 against 1.35 ms is
+the run-to-run spread, not a difference between calibration methods. The
+histograms were built (Entropy took 6.5 s against MinMax's 1.7 s); the KL search
+simply chose the full range on every one of the 21 quantized activations, which
+is what happens when the activations are bounded and not heavy-tailed. Only
+Percentile produced a different graph.
+
+How repeatable is a latency row: the same INT8 file, timed in three fresh
+processes later the same night on the same box, gave 1.36, 1.44 and 1.80 ms,
+while the fp32 graph gave 3.72, 3.96 and 4.51 ms in the same three runs. The
+ratio held at 2.5 to 2.75x. Every number in the table is one sample of 200
+images taken in one quiet window, so treat the ratio as the result and ignore
+differences under about 10% between rows.
 
 #### 6b — structured channel pruning (`prune.py`)
 
@@ -727,10 +751,10 @@ losses as step 3 (imported, not duplicated), then export through the same
 | graph | params | MACs | mAP before fine-tune | mAP after | ms 1 thread | MB |
 |---|---|---|---|---|---|---|
 | full (step 3) | 380,631 | 215.0 M | 0.9107 | — | 3.69 | 1.53 |
-| pruned 25%, global | TODO(measure) | | | | | |
-| pruned 50%, global | TODO(measure) | | | | | |
-| pruned 25% + INT8 | TODO(measure) | | | | | |
-| pruned 50% + INT8 | TODO(measure) | | | | | |
+| pruned 25%, global | 252,978 | 155.6 M | 0.2199 | 0.8919 | 2.84 | 1.02 |
+| pruned 50%, global | 144,427 | 101.8 M | 0.0000 | 0.8454 | 2.42 | 0.58 |
+| pruned 25% + INT8 | 252,978 | 155.6 M | — | 0.8899 | 1.41 | 0.29 |
+| pruned 50% + INT8 | 144,427 | 101.8 M | — | 0.8411 | 1.25 | 0.18 |
 
 The 215.0 M MACs and 380,631 parameters are counted, not estimated
 (`count_macs`, convolutions only, checked against a hand count in
@@ -742,8 +766,38 @@ One figure, `out/edge_curve.png`: model latency at **one thread** on the x
 axis, mAP on the y axis, every graph above a labelled point, the classical
 pipeline's 2.13 ms as a dashed line. One thread because that is the setting
 step 5 left unresolved and the only one that does not depend on how many
-cores the box was given. `TODO(measure)` — the figure is drawn from the JSON
-the two scripts write and does not exist until they have run.
+cores the box was given.
+
+![mAP against one-thread latency for every graph](out/edge_curve.png)
+
+#### What the numbers showed
+
+1. **Static INT8 turns the one-thread loss into a win and takes nothing
+   measurable with it.** 3.57 → 1.38 ms (MinMax) / 1.35 ms (Entropy) on one
+   thread (the same file timed twice, see above), 2.6×, under the classical
+   2.13 ms; 1.52 → 0.60 ms on four. mAP
+   0.9107 → 0.9097, every class within 0.001, recall on objects under half
+   visible unchanged at 0.910 on the same 53 objects.
+2. **Two calibration methods produce the same graph and the elaborate one
+   loses.** MinMax and Entropy do not merely agree to four decimals, they hash
+   the same: on this network the entropy search keeps the full range on every
+   quantized activation. Percentile 99.99 costs 0.0048, five times
+   the others, almost all on the box class (0.914 → 0.904): with 200 images the
+   percentile clip picked a range too tight for something box depends on.
+3. **Dynamic quantization was expected to buy no speed; on one thread it bought
+   half.** 3.57 → 1.82 ms at one thread but 1.54 against 1.52 at four. The
+   integer conv kernels did the single-thread work faster and did not scale; the
+   static QDQ graph did both. The expectation in the 6a paragraph above was wrong
+   on one thread and stays there next to the measurement.
+4. **Pruning is the wrong tool for this network.** 25 % of channels = 28 % of
+   MACs = 20 % of latency (2.84 ms) for −0.019 mAP after three epochs; 50 % =
+   53 % of MACs = 32 % of latency (2.42 ms) for −0.065. Latency falls slower
+   than arithmetic because narrow convolutions run the kernels less efficiently
+   and per-operator overhead does not shrink. Before fine-tuning the pruned
+   networks scored 0.220 and 0.000: the γ ranking was never trained toward
+   sparsity, so what it removed was in use. Pruned 50 % + INT8 reaches 1.25 ms,
+   under 10 % faster than static INT8 alone, for seven points of mAP. Decision:
+   static INT8, no pruning. A smaller network is a training decision.
 
 #### What the smoke run showed, and what it does not prove
 
@@ -784,7 +838,10 @@ on randomised appearance is what transfers: an un-randomised model collapses to
 and on top of the randomiser it adds **0.0007**. Through ONNX Runtime the detector
 runs at **1.20 ms** end to end on 8 threads against the classical 2.13 ms, identical
 mAP, and the first latency measurement was discarded for having been taken on a
-hot box.
+hot box. Step 6, measured 2026-09-23: static INT8 through ONNX Runtime brings the
+one-thread model time from 3.57 ms to **1.38 ms** at −0.0010 mAP, under the
+classical 2.13 ms; structured channel pruning costs 0.019 to 0.065 mAP for 20 to
+32 % less latency and is not the tool for this network.
 
 What carries into project 3 (RL on a biped in MuJoCo): the domain-randomisation
 asymmetry in step 4 finding 5 is the design rule for the physics randomiser; the
