@@ -1,11 +1,13 @@
-# mujoco-clutter-detect — block 2: detection, augmentation, mAP
+# mujoco-clutter-detect — tabletop clutter detector, INT8 on one thread
 
 Multi-object detection on a simulated tabletop. Three classes (`box`, `cylinder`,
 `sphere`), 3–6 objects per scene, a tilted camera, and labels read straight out of
 the renderer's segmentation buffer.
 
-Block 2 of the ML track, **closed 2026-09-06** — every step below has a measured
-result. Block 1 ([`mujoco-cube-pose-cnn`](https://github.com/AungKaung1928/mujoco-cube-pose-cnn))
+Block 2 of the ML track, **closed 2026-09-06** — every step below through 5 has a
+measured result. **Step 6 (INT8 quantization and structured pruning) is code
+complete and smoke-tested, not yet measured**; its numbers are marked
+`TODO(measure)` with the command that produces each one. Block 1 ([`mujoco-cube-pose-cnn`](https://github.com/AungKaung1928/mujoco-cube-pose-cnn))
 regressed one pose from a top-down view and closed at 0.59 mm median error with a
 27k-parameter soft-argmax head.
 
@@ -99,6 +101,11 @@ top of every image — dead pixels, and a trivial cue for the network to latch o
    end to end on 8 threads against the classical pipeline's 2.13 ms. Block 1's
    "runtime is the cost" finding holds only in part, and the first measurement
    had to be thrown away — both recorded below.
+6. **Edge-AI: INT8 and pruning** — code complete, **not yet measured**. Static
+   post-training INT8 through ONNX Runtime with three calibration methods, a
+   dynamic-quantization row for contrast, structured channel pruning with the
+   channels physically removed, and one mAP-versus-latency figure on a single
+   thread — the case step 5 left the detector losing to the classical pipeline.
 
 ## Reproducing
 
@@ -121,6 +128,9 @@ nice -n 10 python run_ablation.py --epochs 12 --fit-n 6000 \
     --out runs/ablation.json                                        # step 4, ~95 min
 nice -n 10 python export_onnx.py --ckpt runs/det_hard_none.pt \
     --regime hard --save runs/onnx.json                             # step 5, ~5 min, idle box only
+nice -n 10 python quantize.py --calib 200                           # step 6a, ~3 min, idle box only
+nice -n 10 python prune.py --ratios 0.25 0.5 --finetune-epochs 3 --int8   # step 6b, ~15 min
+python edge_curve.py --out out/edge_curve.png                       # step 6c, seconds
 ```
 
 Everything the README quotes is tracked: `runs/*.json` (metrics), `runs/log_*.txt`
@@ -140,7 +150,8 @@ rendering backend.
 Tiered on purpose. The first two tiers need no dataset and no weights — they run
 the 15 hand-computed AP cases and the encode/decode inverse check, which are the
 two places a silent bug would invalidate every number below. They take under a
-minute. The later tiers need `data/` (2.9 GB, gitignored) and `runs/*.pt`, and
+minute; tier 3 adds the step-6 checks (INT8 round trip, pruning rewiring exactness)
+and also needs no data. The later tiers need `data/` (2.9 GB, gitignored) and `runs/*.pt`, and
 say how to regenerate them rather than failing.
 
 ## Results
@@ -626,6 +637,140 @@ limit. Three consequences, adopted for the rest of the track:
 
 The 3.87 ms in step 3's table was taken in-process after 34 minutes of training and
 has the same problem; its footnote points here.
+
+### Step 6 — Edge-AI: INT8 and pruning
+
+**Status: code complete, smoke-tested on 100 images, not yet measured.** Every
+number below is `TODO(measure)` until the full `hard/val` run is done on an idle
+box with the load average recorded, per finding 5 of step 5. The smoke run
+exists only to prove the pipeline executes end to end and is not quoted.
+
+Step 5 ended with the detector at 3.69 ms on one thread against the classical
+pipeline's 2.13 ms — slower on the core budget a ROS 2 node is most likely to
+be given. Step 6 asks whether that can be fixed without touching the
+architecture, using the two tools that actually shrink CPU latency: fewer bits
+per multiply, and fewer multiplies.
+
+#### 6a — static INT8 through ONNX Runtime (`quantize.py`)
+
+Static, not dynamic, because this is a convolutional network. Dynamic
+quantization stores INT8 weights and computes each activation's scale at run
+time from its observed range; on a CNN that leaves the convolutions in fp32
+with a quantize step in front of each, so it saves bytes and buys no speed.
+Static quantization fixes the activation scales once, from a calibration pass,
+and the runtime executes the whole conv chain in INT8 with fused
+requantization. Both are measured; the dynamic row is there to show the gap.
+
+The graph is written in QDQ form (standard `QuantizeLinear` /
+`DequantizeLinear` nodes, fused by ONNX Runtime into `QLinearConv` at session
+load) rather than QOperator, which writes runtime-specific fused ops into the
+file. Activations are unsigned and weights signed per channel — the U8S8
+pairing the x86 INT8 kernels want, and per-channel weight scales are the
+single largest accuracy lever in post-training quantization. The fp32 graph is
+first run through `quant_pre_process` (shape inference + optimisation) so the
+quantizer sees fused Conv/BN pairs and known shapes.
+
+**Calibration images come from the training split, never from val.** Val is
+what the INT8 graph is scored on; calibrating on it would make the drop look
+smaller than it is on new frames. Three calibration methods are compared —
+MinMax, Percentile (99.99) and Entropy — on the same 200 training images.
+
+Verification is end to end, as in step 5: the INT8 graph goes through the same
+`onnx_predict` and the same `ap.py` as the fp32 graph, on the same images. The
+numbers that matter are the mAP drop, the per-class drop, and the **recall on
+objects under 50% visible** — the small, low-contrast detections quantization
+noise takes first, and the ones the classical pipeline could never find.
+
+`nice -n 10 python quantize.py --calib 200` → `runs/quant_{minmax,percentile,entropy,dynamic}.json`
+
+| graph | mAP | Δ mAP | ms 1 thread | ms 4 threads | MB | recall vis<0.5 |
+|---|---|---|---|---|---|---|
+| fp32 ORT (same pre-processed graph) | TODO(measure) | — | | | 1.53 | |
+| INT8 static, MinMax | TODO(measure) | | | | | |
+| INT8 static, Percentile 99.99 | TODO(measure) | | | | | |
+| INT8 static, Entropy | TODO(measure) | | | | | |
+| INT8 dynamic (weights only) | TODO(measure) | | | | | |
+
+Model time only; add step 5's 0.18 ms decode to every row for end to end.
+
+#### 6b — structured channel pruning (`prune.py`)
+
+Structured, not unstructured, because the target is latency. Zeroing half the
+individual weights leaves every convolution the same shape and the same cost —
+a dense kernel does not skip zeros. Removing whole output channels makes the
+next layer's input narrower too, and the multiply-accumulates go down in the
+shape of the network rather than on paper.
+
+Channels are ranked by the BatchNorm scale γ of their conv+BN block (network
+slimming): a channel whose γ is near zero is one the network has already
+learned to ignore. A global threshold across all blocks lets the layers the
+network uses least lose the most.
+
+**Masks are not pruning.** A masked model proves an accuracy claim and not a
+latency claim, so the surgery is explicit: a physically narrower network is
+built, the surviving weights are copied in, and every consumer of a pruned
+tensor has its input channels sliced to match. The FPN makes that non-trivial
+— `c2[1]` feeds both `c3[0]` and the lateral `l2`, `c3[1]` feeds `c4[0]` and
+`l3`, `c4[1]` feeds `p4`, `s2` feeds all three heads — and the wiring is
+spelt out in the file. `s3` is left unpruned because its output is summed
+with `l2(x2)`, whose channels have no γ of their own. With ratio 0 the pruned
+network reproduces the original to 1e-5 (`test_edge.py`), which is the check
+that catches a wrong channel index: that bug does not crash, it trains to a
+low loss with the wrong channels wired together.
+
+After pruning, a short fine-tune with the same dataset class and the same
+losses as step 3 (imported, not duplicated), then export through the same
+`export` and the same timing harness. `--int8` quantizes the pruned graph too.
+
+`nice -n 10 python prune.py --ratios 0.25 0.5 --finetune-epochs 3 --int8` → `runs/prune_{25,50}.json`
+
+| graph | params | MACs | mAP before fine-tune | mAP after | ms 1 thread | MB |
+|---|---|---|---|---|---|---|
+| full (step 3) | 380,631 | 215.0 M | 0.9107 | — | 3.69 | 1.53 |
+| pruned 25%, global | TODO(measure) | | | | | |
+| pruned 50%, global | TODO(measure) | | | | | |
+| pruned 25% + INT8 | TODO(measure) | | | | | |
+| pruned 50% + INT8 | TODO(measure) | | | | | |
+
+The 215.0 M MACs and 380,631 parameters are counted, not estimated
+(`count_macs`, convolutions only, checked against a hand count in
+`test_edge.py`).
+
+#### 6c — the curve (`edge_curve.py`)
+
+One figure, `out/edge_curve.png`: model latency at **one thread** on the x
+axis, mAP on the y axis, every graph above a labelled point, the classical
+pipeline's 2.13 ms as a dashed line. One thread because that is the setting
+step 5 left unresolved and the only one that does not depend on how many
+cores the box was given. `TODO(measure)` — the figure is drawn from the JSON
+the two scripts write and does not exist until they have run.
+
+#### What the smoke run showed, and what it does not prove
+
+`quantize.py --calib 32 --n-eval 100` and `prune.py --ratios 0.25
+--finetune-epochs 0 --n-eval 100`, on the first 100 val images, box not
+idle, thread count 2. Recorded here only as evidence the pipeline runs; none
+of it is a result. Static INT8 executed at roughly a third of the fp32
+single-thread time with a mAP change in the third decimal on that subset;
+Percentile calibration cost more than MinMax or Entropy on 32 images; 25%
+global pruning without fine-tuning collapsed mAP, as it should — the γ ranking
+was never trained toward sparsity, and fine-tuning is the step that decides
+whether pruning is worth anything here. The smoke outputs were deleted and
+`runs/*_smoke*` is gitignored so a subset number can never be mistaken for
+the table.
+
+#### What the numbers will and will not prove
+
+- A 1-thread x86 latency under ONNX Runtime is **not** a Jetson latency. The
+  deployment target is an ARM core plus TensorRT, a different INT8 path on
+  different hardware. The *ordering* of the graphs is expected to carry; the
+  ratios are not. No Jetson is available to this project and the claim stays
+  "one x86 thread".
+- mAP on `hard/val` is a claim about this simulator's appearance
+  randomisation, as in every step before it.
+- Post-training quantization only. If the INT8 drop on the full set is above
+  ~0.01, quantization-aware training is the next step, not a different
+  calibration method.
 
 ## Block 2 — closed
 

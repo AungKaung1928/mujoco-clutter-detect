@@ -29,18 +29,20 @@ hr() { printf '\n=== %s ===\n' "$1"; }
 have_data() { [ -f "data/hard/val_images.npy" ]; }
 have_ckpt() { [ -f "runs/det_hard_none.pt" ]; }
 
-hr "1/5  AP metric -- 15 hand-computed cases"
+hr "1/6  AP metric -- 15 hand-computed cases"
 # Every expected value derived on paper. A test that records what the code
 # printed last time proves only that the code is deterministic.
 "$PY" test_ap.py || exit 1
 
-hr "2/5  target encoding -- encode/decode are inverses"
+hr "2/6  target encoding -- encode/decode are inverses"
 # Run before any training: this bug class does not crash, it trains to low loss
 # and puts the boxes in the wrong place.
 "$PY" test_detector.py || exit 1
 
 if ! have_data; then
-  hr "3-5/5  skipped -- no dataset"
+  hr "3/6  edge-AI -- INT8 round trip, pruning rewiring exactness, MAC count"
+  "$PY" test_edge.py || exit 1
+  hr "4-6/6  skipped -- no dataset"
   cat <<'MSG'
 data/ is gitignored (2.9 GB). To regenerate it (~8 min, single-threaded render,
 CPU-light -- rendering is llvmpipe and uses one core):
@@ -52,20 +54,34 @@ MSG
   exit 0
 fi
 
-hr "3/5  metric end-to-end -- known inputs, known outputs"
+hr "3/6  edge-AI -- INT8 round trip, pruning rewiring exactness, MAC count"
+# Ratio-0 pruning must reproduce the original network to 1e-5: a wrong channel
+# index here trains to a low loss with the wrong channels wired together.
+"$PY" test_edge.py || exit 1
+
+hr "4/6  metric end-to-end -- known inputs, known outputs"
 "$PY" sanity_ap.py || exit 1
 
-hr "4/5  classical baseline on val"
+hr "5/6  classical baseline on val"
 "$PY" baseline_cv.py --regime hard --methods bgsub+ws || exit 1
 
 if have_ckpt; then
-  hr "5/5  detector on val + qualitative figure"
+  hr "6/6  detector on val + qualitative figure"
   python view_cnn.py --ckpt runs/det_hard_none.pt --regime hard --out out/cnn_detections.png || exit 1
   echo "wrote out/cnn_detections.png"
 else
-  hr "5/5  skipped -- no checkpoint"
+  hr "6/6  skipped -- no checkpoint"
   echo "runs/*.pt is gitignored. Retrain with:"
   echo "    nice -n 10 python train_det.py --regime hard --epochs 25 \\"
   echo "        --save runs/det_hard_none.json --ckpt runs/det_hard_none.pt"
   echo "~35 min on 8 threads. See README for the thermal note."
 fi
+
+
+cat <<'MSG'
+
+step 6 measurements (idle box only, record the load average; see README):
+    nice -n 10 python quantize.py --calib 200                          # ~3 min
+    nice -n 10 python prune.py --ratios 0.25 0.5 --finetune-epochs 3 --int8   # ~15 min
+    python edge_curve.py --out out/edge_curve.png
+MSG

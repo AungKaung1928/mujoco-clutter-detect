@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      OMP_NUM_THREADS: "2"
+      MUJOCO_GL: disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: install (CPU wheels)
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu \
+              --extra-index-url https://pypi.org/simple -r requirements.txt
+      - name: AP metric, 15 hand-computed cases
+        run: python test_ap.py
+      - name: target encoding is invertible
+        run: python test_detector.py
+      - name: INT8 round trip, pruning rewiring, MAC count
+        run: python test_edge.py

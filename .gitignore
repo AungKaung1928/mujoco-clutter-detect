@@ -11,3 +11,8 @@ runs/*
 !runs/detector.onnx
 !runs/det_hard_none.pt
 !runs/det_easy_none.pt
+# step 6 graphs are small (0.3-1.5 MB) and are what edge_curve.py plots
+!runs/detector_int8_*.onnx
+!runs/detector_pruned_*.onnx
+# smoke-subset outputs are never tracked
+runs/*_smoke*
