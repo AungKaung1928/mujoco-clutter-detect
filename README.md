@@ -13,6 +13,36 @@ regressed one pose from a top-down view and closed at 0.59 mm median error with 
 
 **Walkthrough:** https://aungkaung1928.github.io/projects/clutter-detect.html — the same project explained end to end, file by file.
 
+## At a glance
+
+![Detections on hard/val: dashed white ground truth, solid coloured predictions, centre heatmap beside each image](out/cnn_detections.png)
+
+![mAP against one-thread model latency for every graph; classical pipeline at 2.13 ms as the dashed line](out/edge_curve.png)
+
+`hard/val`, 2000 images, 8992 objects. Latency = model time, batch 1, one x86 box, idle; add 0.18 ms decode for end to end. Measured 2026-09-23 (steps 3, 5: 2026-09-06).
+
+| graph | mAP@[.5:.95] | Δ mAP | ms, 1 thread | ms, 4 threads | MB |
+|---|---|---|---|---|---|
+| classical `bgsub+ws` (single-threaded) | 0.5322 | — | **2.13** | — | — |
+| fp32, ONNX Runtime | **0.9107** | — | 3.57 | 1.52 | 1.53 |
+| INT8 static, MinMax (= Entropy, same SHA-256) | 0.9097 | −0.0010 | **1.38** | **0.61** | 0.42 |
+| INT8 dynamic (weights only) | 0.9097 | −0.0010 | 1.82 | 1.54 | 0.41 |
+| pruned 25 % channels, fine-tuned 3 ep | 0.8919 | −0.0188 | 2.84 | — | 1.02 |
+| pruned 50 % channels, fine-tuned 3 ep | 0.8454 | −0.0653 | 2.42 | — | 0.58 |
+| pruned 50 % + INT8 | 0.8411 | −0.0696 | 1.25 | — | 0.18 |
+
+fp32 end to end on 8 threads: **1.20 ms** against the classical 2.13 ms, mAP identical through ONNX Runtime (0.9127 on the same 500 images).
+
+**Key points**
+
+- **Detector beats the fitted classical pipeline by 0.38 mAP.** 0.9107 vs 0.5322 with a hand-written AP@[.5:.95] harness (15 paper-derived cases) on exact segmentation-buffer labels; per-class spread falls 0.304 → 0.006 and recall on objects under half visible goes 0.000 → 0.910 (n = 53).
+- **Static INT8 turns the one-thread loss into a win.** 3.57 → 1.38 ms at −0.0010 mAP, 2.6×, under the classical 2.13 ms, every class within 0.001 and recall under half visible unchanged at 0.910; 1.52 → 0.61 ms on four threads.
+- **Randomised appearance transfers, augmentation does not.** An `easy`-trained detector drops 0.9013 → 0.1465 under appearance shift (detection rate 0.29); photometric augmentation recovers only to 0.5214; on top of the randomiser it adds +0.0007 for 33 % more training time, and the randomised model loses only 0.005 going back to `easy`.
+- **Pruning is the wrong tool here (negative result).** 25 / 50 % of channels buy 20 / 32 % less latency (2.84 / 2.42 ms) for −0.019 / −0.065 mAP after fine-tuning; pruned 50 % + INT8 reaches 1.25 ms, under 10 % faster than INT8 alone, for seven points of mAP.
+- **Limits.** Only 10 % of objects are occluded and 0.6 % past half, so mAP is not occlusion-stressed; the first latency run, taken right after a 96-min training, was 17–27 % slower and discarded (both files kept); one x86 thread under ONNX Runtime is not a Jetson number.
+
+<details><summary><b>Scene, labels and task decisions</b></summary>
+
 ## Why the camera moved
 
 Block 1's camera looked straight down. That view has an exact affine pixel↔world
@@ -84,6 +114,10 @@ The table plane is 1.5 m, not 0.5 m, because the tilted camera's top frame ray o
 meets the ground 1.15 m out. A smaller plane leaves a constant black band across the
 top of every image — dead pixels, and a trivial cue for the network to latch onto.
 
+</details>
+
+<details><summary><b>Steps 1–6 — status and headline per step</b></summary>
+
 ## Steps
 
 1. **Scene + dataset + label verification** — done.
@@ -107,6 +141,8 @@ top of every image — dead pixels, and a trivial cue for the network to latch o
    Structured channel pruning with the channels physically removed costs 0.019 /
    0.065 mAP for 20 / 32 % less latency, so it is the wrong tool here. One
    mAP-versus-latency figure on a single thread holds every graph.
+
+</details>
 
 ## Reproducing
 
@@ -164,6 +200,8 @@ minute; tier 3 adds the step-6 checks (INT8 round trip, pruning rewiring exactne
 and also needs no data. The later tiers need `data/` (2.9 GB, gitignored) and `runs/*.pt`, and
 say how to regenerate them rather than failing.
 
+<details><summary><b>Results — step 1 dataset, step 2a AP metric, step 2b classical baseline</b></summary>
+
 ## Results
 
 Filled in as each step lands.
@@ -207,9 +245,9 @@ claim.
 
 ### Step 2a — the AP metric
 
-`pycocotools` is one import away and is deliberately not used. Every detection
-interview question is about what `ap.py` does; calling a library teaches none of
-it. Semantics follow pycocotools closely enough to be comparable, and the places
+`pycocotools` is one import away and is deliberately not used. Every question
+about a detector's score comes back to what `ap.py` does; calling a library teaches
+none of it. Semantics follow pycocotools closely enough to be comparable, and the places
 they differ are marked in the source.
 
 **15 hand-computed unit cases** in `test_ap.py`. Every expected value is derived
@@ -402,6 +440,10 @@ Qualitative output in `out/detections.png`: boxes land on objects cleanly, and
 the visible errors are class flips and near-zero confidences on ambiguous boxes —
 consistent with finding 3.
 
+</details>
+
+<details><summary><b>Results — step 3 anchor-free detector, step 4 augmentation vs domain randomisation</b></summary>
+
 ### Step 3 — anchor-free detector
 
 The heatmap head is the direct generalisation of block 1's spatial soft-argmax. Soft-argmax reduces a feature map to *one* expected location, which is exactly why it cannot be used here: there are three to six objects and one expectation cannot describe them. The generalisation is to stop reducing the map at all — keep it at stride 4 (48×48 for a 192 px input), predict a per-class centre heatmap on it, and read every local maximum instead of the mean. Size and offset ride along as two more heads on the same feature map.
@@ -551,6 +593,10 @@ right answer if the new data comes from somewhere new.
 throughput of the others (783 s vs 595 s) because per-sample numpy augmentation
 is done in the training process; with the finding in 4, that cost was never worth
 removing.
+
+</details>
+
+<details><summary><b>Results — step 5 ONNX export and latency, step 6 INT8 and pruning</b></summary>
 
 ### Step 5 — ONNX export and what the runtime is actually worth
 
@@ -826,6 +872,10 @@ the table.
   ~0.01, quantization-aware training is the next step, not a different
   calibration method.
 
+</details>
+
+<details><summary><b>Block 2 — closed; viewing the scene</b></summary>
+
 ## Block 2 — closed
 
 What was measured, in one paragraph. On a tilted-camera tabletop with exact
@@ -857,3 +907,5 @@ floor, and `view_live.py` opens it in MuJoCo's interactive viewer with both task
 cameras in the dropdown. The dataset renders plain because shadow mapping is what
 software rendering is slow at — roughly 130 img/s with shadows against 800+
 without, a 6× difference on the only cost that matters during generation.
+
+</details>
