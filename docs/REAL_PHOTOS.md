@@ -42,14 +42,15 @@ the light.
 ### Matching the field of view
 
 A typical phone main camera is ~26 mm equivalent: about 53° vertical in a 4:3
-landscape frame, against the sim's 45°. Preprocessing crops a centred square of
+landscape frame, against the sim's 45°. `prep_real.py` crops a centred square of
 side
 
     s = H · tan(45° / 2) / tan(vfov_phone / 2)        (≈ 0.83 H at 53°)
 
 then resizes it to 192 × 192. `vfov_phone` comes from the photo's EXIF
 `FocalLengthIn35mmFilm`, not from a guess. EXIF (including GPS) is stripped
-from every image before anything is committed.
+from every image before anything is committed (OpenCV writes PNG with no EXIF;
+EXIF orientation is applied first, so portrait shots come out upright).
 
 ## Procedure
 

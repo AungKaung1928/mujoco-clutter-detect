@@ -34,10 +34,13 @@ hr "1/6  AP metric -- 15 hand-computed cases"
 # printed last time proves only that the code is deterministic.
 "$PY" test_ap.py || exit 1
 
-hr "2/6  target encoding -- encode/decode are inverses"
+hr "2/6  target encoding -- encode/decode are inverses; real-photo crop"
 # Run before any training: this bug class does not crash, it trains to low loss
 # and puts the boxes in the wrong place.
 "$PY" test_detector.py || exit 1
+# Real-photo preprocessing: field-of-view crop, EXIF orientation, no EXIF in
+# the output. Needs no photos.
+"$PY" test_prep_real.py || exit 1
 
 if ! have_data; then
   hr "3/6  edge-AI -- INT8 round trip, pruning rewiring exactness, MAC count"

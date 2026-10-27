@@ -26,3 +26,5 @@ jobs:
         run: python test_detector.py
       - name: INT8 round trip, pruning rewiring, MAC count
         run: python test_edge.py
+      - name: real-photo crop, orientation, EXIF stripped
+        run: python test_prep_real.py

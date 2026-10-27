@@ -16,4 +16,4 @@ RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu 
 COPY *.py *.sh scene.xml README.md ./
 COPY runs/*.json runs/detector.onnx runs/det_hard_none.pt ./runs/
 
-CMD ["sh", "-c", "python test_ap.py && python test_detector.py && python test_edge.py"]
+CMD ["sh", "-c", "python test_ap.py && python test_detector.py && python test_edge.py && python test_prep_real.py"]

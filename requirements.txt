@@ -7,4 +7,5 @@ opencv-python-headless==5.0.0.93
 onnx
 onnxruntime==1.23.2
 matplotlib
+pillow
 tqdm
