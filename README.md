@@ -27,9 +27,9 @@ regressed one pose from a top-down view and closed at 0.59 mm median error with 
 | fp32, ONNX Runtime | **0.9107** | — | 3.57 | 1.52 | 1.53 |
 | INT8 static, MinMax (= Entropy, same SHA-256) | 0.9097 | −0.0010 | **1.38** | **0.61** | 0.42 |
 | INT8 dynamic (weights only) | 0.9097 | −0.0010 | 1.82 | 1.54 | 0.41 |
-| pruned 25 % channels, fine-tuned 3 ep | 0.8919 | −0.0188 | 2.84 | — | 1.02 |
+| pruned 25 % channels, fine-tuned 3 ep | 0.8919 | −0.0189 | 2.84 | — | 1.02 |
 | pruned 50 % channels, fine-tuned 3 ep | 0.8454 | −0.0653 | 2.42 | — | 0.58 |
-| pruned 50 % + INT8 | 0.8411 | −0.0696 | 1.25 | — | 0.18 |
+| pruned 50 % + INT8 | 0.8411 | −0.0697 | 1.25 | — | 0.18 |
 
 fp32 end to end on 8 threads: **1.20 ms** against the classical 2.13 ms, mAP identical through ONNX Runtime (0.9127 on the same 500 images).
 

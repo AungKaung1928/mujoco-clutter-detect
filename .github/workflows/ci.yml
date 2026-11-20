@@ -32,3 +32,5 @@ jobs:
         run: python test_real_hope.py
       - name: frozen-backbone detector (no download)
         run: python test_backbone.py
+      - name: README headline table vs runs/*.json
+        run: python test_readme.py
