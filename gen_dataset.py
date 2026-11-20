@@ -31,6 +31,7 @@ GEOM = int(mujoco.mjtObj.mjOBJ_GEOM)
 
 
 N_TEX = 24   # procedural textures per bank (objects, table)
+N_DIS = 4    # distractor slots in regime texd: unlabeled shapes the detector must ignore
 
 
 def texture_assets(seed=0, n=N_TEX):
@@ -57,8 +58,12 @@ def texture_assets(seed=0, n=N_TEX):
 
 def make_model(img_size, regime=None):
     xml = open(os.path.join(ROOT, "scene.xml")).read()
-    if regime == "tex":
+    if regime in ("tex", "texd"):
         xml = xml.replace("<worldbody>", texture_assets() + "\n<worldbody>", 1)
+    if regime == "texd":
+        dis = "\n".join(f'<body name="dis{i}" pos="{C.PARK_XY} {C.PARK_XY} 0">'
+                         f'<geom name="dg{i}" type="capsule" size="0.02 0.02"/></body>' for i in range(N_DIS))
+        xml = xml.replace("</worldbody>", dis + "\n</worldbody>", 1)
     xml = xml.replace('offwidth="256"', f'offwidth="{img_size}"')
     xml = xml.replace('offheight="256"', f'offheight="{img_size}"')
     return mujoco.MjModel.from_xml_string(xml)
@@ -113,7 +118,7 @@ def sample_appearance(model, rng, regime, gids, table_gid, light_id):
         d = rng.uniform(0.4, 1.0)
         model.light_diffuse[light_id] = [d, d, d]
         model.geom_matid[table_gid] = -1
-        if regime == "tex":
+        if regime in ("tex", "texd"):
             # The material's texture replaces the colour only when the geom rgba is
             # MuJoCo's default grey, so reset it; a third of objects keep a plain hue.
             for g in gids:
@@ -146,6 +151,59 @@ def seg_ids(renderer, model, data, cam):
     return np.where(s[..., 1] == GEOM, s[..., 0], -1)
 
 
+def sample_distractor(rng):
+    """Unlabeled shape (Tremblay et al. 2018, arXiv 1804.06516): capsule or
+    ellipsoid, neither of which is a class here. Returns type, size, half-height."""
+    if rng.uniform() < 0.5:
+        r, h = rng.uniform(0.012, 0.03), rng.uniform(0.01, 0.04)
+        return int(mujoco.mjtGeom.mjGEOM_CAPSULE), [r, h, 0.0], r + h
+    # longest axis >= 1.8x the shortest, so no distractor passes for a sphere
+    lo = rng.uniform(0.012, 0.022)
+    radii = rng.permutation([lo, rng.uniform(lo, lo * 1.8), lo * rng.uniform(1.8, 2.5)])
+    return int(mujoco.mjtGeom.mjGEOM_ELLIPSOID), list(radii), radii[2]
+
+
+def visibility(renderer, model, data, cam, bids, gids, placed, dis):
+    """Visible px / box per object, and its unoccluded px where occlusion is possible.
+
+    placed: [(xy, half_h, yaw)] for the k objects; dis: [(bid, gid, xy, half_h)]
+    distractors. An object whose visible box touches no other visible box
+    (object or distractor) cannot be occluded and keeps full_px None. Otherwise
+    it is re-rendered alone, with every other object AND every distractor parked."""
+    k = len(placed)
+    seg = seg_ids(renderer, model, data, cam)
+    vis_px = [int((seg == gids[s]).sum()) for s in range(k)]
+    vis_box = [C.mask_to_box(seg == gids[s]) for s in range(k)]
+    dbox = [b for b in (C.mask_to_box(seg == g) for _, g, _, _ in dis) if b is not None]
+    present = [s for s in range(k) if vis_box[s] is not None]
+    need_solo = set()
+    for a_i, a in enumerate(present):
+        for b in present[a_i + 1:]:
+            if C.boxes_iou([vis_box[a]], [vis_box[b]])[0, 0] > 0:
+                need_solo.update((a, b))
+        if dbox and (C.boxes_iou([vis_box[a]], dbox)[0] > 0).any():
+            need_solo.add(a)
+    # a completely invisible object is fully occluded; measure it anyway
+    need_solo |= {s for s in range(k) if vis_box[s] is None}
+
+    full_px = dict.fromkeys(range(k), None)
+    for s in sorted(need_solo):
+        for t in range(k):
+            if t != s:
+                park(model, bids[t])
+        for db, _, _, _ in dis:
+            park(model, db)
+        mujoco.mj_forward(model, data)
+        full_px[s] = int((seg_ids(renderer, model, data, cam) == gids[s]).sum())
+        for t in range(k):
+            if t != s:
+                place(model, bids[t], *placed[t])
+        for db, _, xy, hh in dis:
+            place(model, db, xy, hh, np.nan)
+        mujoco.mj_forward(model, data)
+    return vis_px, vis_box, full_px, len(need_solo)
+
+
 def generate(regime, n, img_size, seed, split, cam, do_occlusion=True):
     model = make_model(img_size, regime)
     data = mujoco.MjData(model)
@@ -156,6 +214,9 @@ def generate(regime, n, img_size, seed, split, cam, do_occlusion=True):
     gids = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, f"g{i}") for i in range(C.N_SLOTS)]
     table_gid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "table")
     light_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_LIGHT, "l0")
+    n_dis = N_DIS if regime == "texd" else 0
+    dbids = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, f"dis{i}") for i in range(n_dis)]
+    dgids = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, f"dg{i}") for i in range(n_dis)]
 
     outdir = os.path.join(ROOT, "data", regime)
     os.makedirs(outdir, exist_ok=True)
@@ -169,7 +230,14 @@ def generate(regime, n, img_size, seed, split, cam, do_occlusion=True):
     t0 = time.perf_counter()
     for i in range(n):
         k = int(rng.integers(3, C.N_SLOTS + 1))
-        pts = sample_positions(rng, k)
+        if n_dis:
+            # distractors share the no-interpenetration sampler; drawn only in texd,
+            # so the random stream of every other regime is unchanged
+            nd = int(rng.integers(1, n_dis + 1))
+            pts = sample_positions(rng, k + nd)
+            dpts, pts = pts[k:], pts[:k]
+        else:
+            pts, dpts = sample_positions(rng, k), []
         k = len(pts)
         objs = [sample_object(rng) for _ in range(k)]
 
@@ -182,42 +250,25 @@ def generate(regime, n, img_size, seed, split, cam, do_occlusion=True):
             else:
                 park(model, bids[s])
         sample_appearance(model, rng, regime, gids[:k], table_gid, light_id)
+        dis = []
+        for d in range(n_dis):
+            if d < len(dpts):
+                gtype, size, hh = sample_distractor(rng)
+                model.geom_type[dgids[d]] = gtype
+                model.geom_size[dgids[d]] = size
+                model.geom_matid[dgids[d]] = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_MATERIAL, f"mo{rng.integers(N_TEX)}")
+                model.geom_rgba[dgids[d]] = [0.5, 0.5, 0.5, 1.0]
+                place(model, dbids[d], dpts[d], hh, np.nan)
+                dis.append((dbids[d], dgids[d], dpts[d], hh))
+            else:
+                park(model, dbids[d])
         mujoco.mj_forward(model, data)
 
         renderer.update_scene(data, camera=cam)
         imgs[i] = renderer.render()
-        seg = seg_ids(renderer, model, data, cam)
-
-        vis_px, vis_box = [], []
-        for s in range(k):
-            m = seg == gids[s]
-            vis_px.append(int(m.sum()))
-            vis_box.append(C.mask_to_box(m))
-
-        # An object whose visible box touches no other visible box cannot have
-        # been occluded, so it needs no second render.
-        present = [s for s in range(k) if vis_box[s] is not None]
-        need_solo = set()
-        for a_i, a in enumerate(present):
-            for b in present[a_i + 1:]:
-                if C.boxes_iou([vis_box[a]], [vis_box[b]])[0, 0] > 0:
-                    need_solo.add(a)
-                    need_solo.add(b)
-        # a completely invisible object is fully occluded; measure it anyway
-        need_solo |= {s for s in range(k) if vis_box[s] is None}
-
-        full_px = dict.fromkeys(range(k), None)
-        for s in sorted(need_solo):
-            for t in range(k):
-                if t != s:
-                    park(model, bids[t])
-            mujoco.mj_forward(model, data)
-            full_px[s] = int((seg_ids(renderer, model, data, cam) == gids[s]).sum())
-            n_solo += 1
-            for t in range(k):
-                if t != s:
-                    place(model, bids[t], pts[t], objs[t][3], objs[t][4])
-            mujoco.mj_forward(model, data)
+        placed = [(pts[t], objs[t][3], objs[t][4]) for t in range(k)]
+        vis_px, vis_box, full_px, ns = visibility(renderer, model, data, cam, bids, gids, placed, dis)
+        n_solo += ns
 
         for s in range(k):
             cls, _, _, _, yaw = objs[s]

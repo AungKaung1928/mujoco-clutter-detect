@@ -41,6 +41,9 @@ hr "2/6  target encoding -- encode/decode are inverses; real-photo crop"
 # Real-photo preprocessing: field-of-view crop, EXIF orientation, no EXIF in
 # the output. Needs no photos.
 "$PY" test_prep_real.py || exit 1
+"$PY" test_real_hope.py || exit 1
+"$PY" test_backbone.py || exit 1
+"$PY" test_distractors.py || exit 1   # renders: needs MUJOCO_GL
 
 if ! have_data; then
   hr "3/6  edge-AI -- INT8 round trip, pruning rewiring exactness, MAC count"

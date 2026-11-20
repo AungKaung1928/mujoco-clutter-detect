@@ -117,7 +117,7 @@ def hsv_to_rgb(h, s, v):
     return [(v, t, p), (q, v, p), (p, v, t), (p, q, v), (t, p, v), (v, p, q)][i]
 
 
-REGIMES = ("easy", "hard", "tex")   # tex = hard + random procedural textures (step 8)
+REGIMES = ("easy", "hard", "tex", "texd")   # tex = hard + procedural textures; texd = tex + distractors (step 8)
 
 
 def load_split(root, regime, split):
