@@ -876,6 +876,35 @@ the table.
 
 <details><summary><b>Block 2 — closed; viewing the scene</b></summary>
 
+### Step 7 — real photos (HOPE), measured 2026-11-21
+
+The sim-to-real question asked on real images for the first time. `eval_real_hope.py`
+runs both detectors on the 50 labelled validation photos of HOPE-Image (Tyree et al.,
+IROS 2022, [arXiv 2203.05701](https://arxiv.org/abs/2203.05701); BOP copy at
+huggingface.co/datasets/bop-benchmark/hope, CC-BY-SA-4.0, images not in this repo):
+28 toy groceries in 10 real scenes, RealSense D415, 1920 × 1080. Cans count as
+`cylinder`, cardboard boxes as `box` (by product type from the object names, an
+assumption); bottles, cartons and the yogurt cup are ignored, as are objects under
+10 % visible. Same crop rule as `prep_real.py`; the 45° square (1,150 px) is taller than
+the frame, so the crop is the full 1,080 px (42.5°). Objects come out at a median
+27.9 px at 192 px, the sim's own size (28.4 px), so scale is not the gap.
+
+| model (sim training regime) | mAP@[.5:.95] | AP50 | AP box | AP cylinder | recall@0.5 box / cyl |
+|---|---|---|---|---|---|
+| `easy` (fixed appearance) | 0.0002 | 0.0018 | 0.0001 | 0.0003 | 0.018 / 0.023 |
+| `hard` (randomised hue, table, light) | 0.0063 | 0.0218 | 0.0126 | 0.0000 | 0.131 / 0.000 |
+
+275 boxes and 310 cans scored, 16.9 objects per image counting ignored ones (sim: 3–6).
+**Negative result: neither model transfers.** Randomisation helps (mAP 31×, box recall
+2% → 13%) but from almost nothing to almost nothing. Diagnostics, not in the table:
+class-agnostic recall@0.5 is 0.089 for `hard`, so localisation fails too, not only the
+class; keeping 30 peaks instead of 10 changes mAP by under 0.001, so the per-image cap
+is not the cause; above score 0.3 the `hard` model calls 353 of 398 detections `box`,
+cans included. The photos have printed labels, objects piled in a bag and a sofa behind
+them; the randomiser varies only hue, table and light of flat-coloured primitives.
+Which of those differences costs most is not measured. Next lever to test: textured
+objects and distractors in the sim, then re-measure here.
+
 ## Block 2 — closed
 
 What was measured, in one paragraph. On a tilted-camera tabletop with exact
