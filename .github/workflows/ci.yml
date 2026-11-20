@@ -28,3 +28,5 @@ jobs:
         run: python test_edge.py
       - name: real-photo crop, orientation, EXIF stripped
         run: python test_prep_real.py
+      - name: real-photo eval (HOPE) crop, class map, ignore
+        run: python test_real_hope.py
