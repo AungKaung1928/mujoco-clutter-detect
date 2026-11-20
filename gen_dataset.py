@@ -30,8 +30,35 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 GEOM = int(mujoco.mjtObj.mjOBJ_GEOM)
 
 
-def make_model(img_size):
+N_TEX = 24   # procedural textures per bank (objects, table)
+
+
+def texture_assets(seed=0, n=N_TEX):
+    """XML <asset> block: n cube textures for objects, n 2-D ones for the table.
+
+    Fixed bank, drawn once from `seed`, so the model compiles once and each image
+    only picks material ids. Builtins and the random-mark speckle follow the
+    MuJoCo texture docs; the mix (checker / gradient / speckled flat) is the
+    procedural-texture idea of Tobin et al. 2017 (arXiv 1703.06907), not a copy."""
+    rng = np.random.default_rng(seed)
+    col = lambda: " ".join(f"{v:.3f}" for v in rng.uniform(0, 1, 3))
+    out = ["<asset>"]
+    for bank, ttype in (("o", "cube"), ("t", "2d")):
+        for i in range(n):
+            kind = ("checker", "gradient", "flat")[i % 3]
+            mark = f' mark="random" random="{rng.uniform(0.05, 0.4):.2f}" markrgb="{col()}"' if kind == "flat" else ""
+            out.append(f'<texture name="t{bank}{i}" type="{ttype}" builtin="{kind}" rgb1="{col()}" rgb2="{col()}" '
+                       f'width="64" height="64"{mark}/>')
+            rep = f' texrepeat="{rng.integers(2, 9)} {rng.integers(2, 9)}"' if bank == "t" else ""
+            out.append(f'<material name="m{bank}{i}" texture="t{bank}{i}"{rep}/>')
+    out.append("</asset>")
+    return "\n".join(out)
+
+
+def make_model(img_size, regime=None):
     xml = open(os.path.join(ROOT, "scene.xml")).read()
+    if regime == "tex":
+        xml = xml.replace("<worldbody>", texture_assets() + "\n<worldbody>", 1)
     xml = xml.replace('offwidth="256"', f'offwidth="{img_size}"')
     xml = xml.replace('offheight="256"', f'offheight="{img_size}"')
     return mujoco.MjModel.from_xml_string(xml)
@@ -77,6 +104,7 @@ def sample_appearance(model, rng, regime, gids, table_gid, light_id):
         model.light_diffuse[light_id] = [0.7, 0.7, 0.7]
     else:
         for g in gids:
+            model.geom_matid[g] = -1
             model.geom_rgba[g] = [
                 *C.hsv_to_rgb(rng.uniform(0, 1), rng.uniform(0.5, 1.0), rng.uniform(0.45, 1.0)), 1.0]
         g0 = rng.uniform(0.25, 0.85)
@@ -84,6 +112,16 @@ def sample_appearance(model, rng, regime, gids, table_gid, light_id):
         model.light_pos[light_id] = [rng.uniform(-0.5, 0.5), rng.uniform(-0.6, 0.3), rng.uniform(0.9, 1.4)]
         d = rng.uniform(0.4, 1.0)
         model.light_diffuse[light_id] = [d, d, d]
+        model.geom_matid[table_gid] = -1
+        if regime == "tex":
+            # The material's texture replaces the colour only when the geom rgba is
+            # MuJoCo's default grey, so reset it; a third of objects keep a plain hue.
+            for g in gids:
+                if rng.uniform() < 2 / 3:
+                    model.geom_matid[g] = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_MATERIAL, f"mo{rng.integers(N_TEX)}")
+                    model.geom_rgba[g] = [0.5, 0.5, 0.5, 1.0]
+            model.geom_matid[table_gid] = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_MATERIAL, f"mt{rng.integers(N_TEX)}")
+            model.geom_rgba[table_gid] = [0.5, 0.5, 0.5, 1.0]
 
 
 def place(model, bid, xy, half_h, yaw):
@@ -109,7 +147,7 @@ def seg_ids(renderer, model, data, cam):
 
 
 def generate(regime, n, img_size, seed, split, cam, do_occlusion=True):
-    model = make_model(img_size)
+    model = make_model(img_size, regime)
     data = mujoco.MjData(model)
     renderer = mujoco.Renderer(model, img_size, img_size)
     rng = np.random.default_rng(seed)
