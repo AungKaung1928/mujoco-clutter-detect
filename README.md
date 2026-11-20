@@ -33,10 +33,12 @@ regressed one pose from a top-down view and closed at 0.59 mm median error with 
 
 fp32 end to end on 8 threads: **1.20 ms** against the classical 2.13 ms, mAP identical through ONNX Runtime (0.9127 on the same 500 images).
 
+**Re-timed in one process (2026-11-21).** The classical 2.13 ms and the INT8 1.38 ms above come from different sessions. Timed together on one thread, the same 200 `hard/val` images, 10 interleaved rounds (`edge_vs_classical.py` → `runs/edge_vs_classical.json`): classical 1.80 ms, INT8 model only 1.56 ms, INT8 end to end (normalise, model, decode, threshold) 1.94 ms, fp32 model 3.85 ms. Two earlier runs that day gave the same order (classical 1.49 / 1.64, INT8 model 1.30 / 1.44, INT8 end to end 1.93). So INT8 is faster than the classical pipeline as a model (about 13 %), but end to end on one thread it is 8–18 % slower; "under the classical 2.13 ms with room to spare" does not hold when both are timed together. The accuracy gap (0.91 vs 0.53 mAP) is unchanged.
+
 **Key points**
 
 - **Detector beats the fitted classical pipeline by 0.38 mAP.** 0.9107 vs 0.5322 with a hand-written AP@[.5:.95] harness (15 paper-derived cases) on exact segmentation-buffer labels; per-class spread falls 0.304 → 0.006 and recall on objects under half visible goes 0.000 → 0.910 (n = 53).
-- **Static INT8 turns the one-thread loss into a win.** 3.57 → 1.38 ms at −0.0010 mAP, 2.6×, under the classical 2.13 ms, every class within 0.001 and recall under half visible unchanged at 0.910; 1.52 → 0.61 ms on four threads.
+- **Static INT8 turns the one-thread loss into a win, as model time.** 3.57 → 1.38 ms at −0.0010 mAP, 2.6×, under the classical 2.13 ms (timed in one process with decode included it is 1.94 vs 1.80 ms, see the re-timing note above), every class within 0.001 and recall under half visible unchanged at 0.910; 1.52 → 0.61 ms on four threads.
 - **Randomised appearance transfers, augmentation does not.** An `easy`-trained detector drops 0.9013 → 0.1465 under appearance shift (detection rate 0.29); photometric augmentation recovers only to 0.5214; on top of the randomiser it adds +0.0007 for 33 % more training time, and the randomised model loses only 0.005 going back to `easy`.
 - **Pruning is the wrong tool here (negative result).** 25 / 50 % of channels buy 20 / 32 % less latency (2.84 / 2.42 ms) for −0.019 / −0.065 mAP after fine-tuning; pruned 50 % + INT8 reaches 1.25 ms, under 10 % faster than INT8 alone, for seven points of mAP.
 - **Limits.** Only 10 % of objects are occluded and 0.6 % past half, so mAP is not occlusion-stressed; the first latency run, taken right after a 96-min training, was 17–27 % slower and discarded (both files kept); one x86 thread under ONNX Runtime is not a Jetson number.
