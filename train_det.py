@@ -180,7 +180,7 @@ def eval_on(model, regime, tag):
 
 
 def train(regime, aug, epochs, bs, lr, width, seed, tune_n, out_json, out_ckpt,
-          fit_n=0, cross=True):
+          fit_n=0, cross=True, backbone="scratch"):
     torch.manual_seed(seed)
     tr_i, tr_b, meta = C.load_split(ROOT, regime, "train")
     va_i, va_b, _ = C.load_split(ROOT, regime, "val")
@@ -200,8 +200,8 @@ def train(regime, aug, epochs, bs, lr, width, seed, tune_n, out_json, out_ckpt,
     ds = DetData(tr_i[:n_fit], fit_b, size, aug=aug, seed=seed)
     dl = DataLoader(ds, batch_size=bs, shuffle=True, num_workers=0, drop_last=True)
 
-    model = D.Detector(w=width)
-    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    model = D.FrozenBackboneDetector() if backbone == "mnv3" else D.Detector(w=width)
+    opt = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=lr)
     sched = torch.optim.lr_scheduler.OneCycleLR(
         opt, max_lr=lr, total_steps=epochs * len(dl), pct_start=0.3)
 
@@ -238,7 +238,7 @@ def train(regime, aug, epochs, bs, lr, width, seed, tune_n, out_json, out_ckpt,
 
     res = eval_on(model, regime, f"[cnn/{aug}] {regime}  (trained here)")
     res.update({"regime": regime, "aug": aug, "epochs": epochs, "params": model.n_params(),
-                "train_s": train_s, "history": hist, "width": width, "seed": seed,
+                "train_s": train_s, "history": hist, "width": width, "seed": seed, "backbone": backbone,
                 "n_fit": n_fit})
     if cross:
         other = [r for r in C.REGIMES if r != regime][0]
@@ -246,7 +246,7 @@ def train(regime, aug, epochs, bs, lr, width, seed, tune_n, out_json, out_ckpt,
         res["cross_regime"] = other
 
     if out_ckpt:
-        torch.save({"model": model.state_dict(), "width": width, "img_size": size}, out_ckpt)
+        torch.save({"model": model.state_dict(), "width": width, "img_size": size, "backbone": backbone}, out_ckpt)
     if out_json:
         os.makedirs(os.path.dirname(out_json) or ".", exist_ok=True)
         json.dump(res, open(out_json, "w"), indent=2)
@@ -262,6 +262,8 @@ if __name__ == "__main__":
     a.add_argument("--bs", type=int, default=32)
     a.add_argument("--lr", type=float, default=2.5e-3)
     a.add_argument("--width", type=int, default=32)
+    a.add_argument("--backbone", choices=["scratch", "mnv3"], default="scratch",
+                   help="mnv3 = frozen ImageNet MobileNetV3-small (real-photo lever B)")
     a.add_argument("--seed", type=int, default=0)
     a.add_argument("--tune-n", type=int, default=1500)
     a.add_argument("--fit-n", type=int, default=0, help="cap training images (0 = all)")
@@ -270,4 +272,4 @@ if __name__ == "__main__":
     a.add_argument("--ckpt", default="")
     a = a.parse_args()
     train(a.regime, a.aug, a.epochs, a.bs, a.lr, a.width, a.seed, a.tune_n, a.save,
-          a.ckpt, a.fit_n, not a.no_cross)
+          a.ckpt, a.fit_n, not a.no_cross, a.backbone)

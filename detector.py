@@ -201,6 +201,68 @@ class Detector(nn.Module):
         return sum(p.numel() for p in self.parameters())
 
 
+class FrozenBackboneDetector(nn.Module):
+    """Same decoder and heads as Detector, on a frozen ImageNet MobileNetV3-small.
+
+    Lever B of the real-photo study: Hinterstoisser et al. 2018 (arXiv 1710.10710)
+    keep a feature extractor pre-trained on real images frozen and train only the
+    rest on renders. Taps at strides 4 / 8 / 16 (features[1], [3], [8]: 16, 24, 48
+    channels) replace c2 / c3 / c4. Inputs arrive normalised the way this repo
+    normalises (x - 0.45) / 0.25; forward maps them to ImageNet statistics, so
+    predict() and the export path are unchanged.
+    """
+
+    IMNET_MEAN = (0.485, 0.456, 0.406)
+    IMNET_STD = (0.229, 0.224, 0.225)
+
+    def __init__(self, head=64, weights="DEFAULT"):
+        super().__init__()
+        from torchvision.models import mobilenet_v3_small
+        f = mobilenet_v3_small(weights=weights).features
+        self.b4, self.b8, self.b16 = f[:2], f[2:4], f[4:9]
+        for p in self.backbone_parameters():
+            p.requires_grad_(False)
+        self.l3 = nn.Conv2d(24, 64, 1)
+        self.l2 = nn.Conv2d(16, 64, 1)
+        self.p4 = nn.Conv2d(48, 64, 1)
+        self.s3 = conv_bn(64, 64)
+        self.s2 = conv_bn(64, head)
+        self.hm = nn.Conv2d(head, N_CLS, 1)
+        self.wh = nn.Conv2d(head, 2, 1)
+        self.off = nn.Conv2d(head, 2, 1)
+        self.hm.bias.data.fill_(-4.6)
+        self.register_buffer("mean", torch.tensor(self.IMNET_MEAN).view(1, 3, 1, 1))
+        self.register_buffer("std", torch.tensor(self.IMNET_STD).view(1, 3, 1, 1))
+
+    def backbone_parameters(self):
+        return [p for m in (self.b4, self.b8, self.b16) for p in m.parameters()]
+
+    def train(self, mode=True):
+        super().train(mode)
+        for m in (self.b4, self.b8, self.b16):
+            m.eval()          # frozen BatchNorm statistics too
+        return self
+
+    def forward(self, x):
+        x = ((x * 0.25 + 0.45) - self.mean) / self.std
+        x2 = self.b4(x)
+        x3 = self.b8(x2)
+        x4 = self.b16(x3)
+        y3 = self.s3(self.l3(x3) + F.interpolate(self.p4(x4), scale_factor=2, mode="nearest"))
+        y2 = self.s2(self.l2(x2) + F.interpolate(y3, scale_factor=2, mode="nearest"))
+        return torch.sigmoid(self.hm(y2)), self.wh(y2), self.off(y2)
+
+    def n_params(self):
+        return sum(p.numel() for p in self.parameters())
+
+
+def build(ck):
+    """Model from a train_det checkpoint dict (weights not loaded)."""
+    if ck.get("backbone", "scratch") == "mnv3":
+        return FrozenBackboneDetector(weights=None)
+    return Detector(w=ck["width"])
+
+
 # ------------------------------------------------------------------- decoding
 
 @torch.no_grad()

@@ -96,7 +96,7 @@ def main(root, ckpts, out):
           f"median object {res['object_px_median']} px at {IMG_SIZE} px")
     for path in ckpts:
         ck = torch.load(path, map_location="cpu", weights_only=False)
-        model = D.Detector(w=ck["width"])
+        model = D.build(ck)
         model.load_state_dict(ck["model"])
         dets = predict(model, imgs, IMG_SIZE)
         r = AP.evaluate(dets, gts, gt_ignore=ign)
