@@ -743,6 +743,12 @@ noise takes first, and the ones the classical pipeline could never find.
 
 `nice -n 10 python quantize.py --calib 200` → `runs/quant_{minmax,percentile,entropy,dynamic}.json`
 
+Reproduced 2026-11-22 (`quantize.py --methods minmax --tag _ort123`, then `_ort130`, one per
+ONNX Runtime version): under ORT 1.23.2 the INT8 file is bit-identical to the tracked
+`runs/detector_int8_minmax.onnx` (SHA-256 b63c2f017eee…); under ORT 1.30.0 the bytes
+differ (aa7f0541a3d8…) but the score does not (mAP 0.909709, 10,849
+detections, as tracked). To reproduce the file, pin the runtime; the score survives the upgrade.
+
 | graph | mAP | Δ mAP | ms 1 thread | ms 4 threads | MB | recall vis<0.5 |
 |---|---|---|---|---|---|---|
 | fp32 ORT (same pre-processed graph) | 0.9107 | — | 3.57 | 1.52 | 1.53 | 0.910 |

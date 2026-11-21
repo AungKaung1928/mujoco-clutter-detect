@@ -41,6 +41,7 @@ import time
 
 import numpy as np
 import onnx
+import onnxruntime as ort
 from onnxruntime.quantization import (CalibrationDataReader, CalibrationMethod,
                                       QuantFormat, QuantType, quantize_dynamic,
                                       quantize_static)
@@ -186,7 +187,7 @@ def main():
         sc = score(out, va_i, gts, vf, size, args.n_eval)
         lat = {f"{t}t": time_onnx(out, xs, args.n_time, t) for t in args.threads}
         res = {"method": method, "path": out, "bytes": os.path.getsize(out),
-               "sha256": sha256(out),
+               "sha256": sha256(out), "ort": ort.__version__,
                "calib_images": 0 if method == "dynamic" else args.calib,
                "calib_split": "train", "quantize_s": q_s, "nodes": n_quantized_nodes(out),
                "score": sc, "latency_ms": lat, "ref": ref,

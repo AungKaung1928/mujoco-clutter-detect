@@ -258,5 +258,16 @@ claims = (f"time outside the kernels is {outside:.2f} ms", f"(+{pad:.0f} % execu
           f"run {slow:.0f} % slower per MAC")
 check("pruning cause sentence", all(c in " ".join(" ".join(LINES).split()) for c in claims), f"README must contain {claims}")
 
+print("INT8 reproduction across ORT versions (runs/quant_minmax__ort*.json)")
+import hashlib
+r123, r130, qm = load("quant_minmax__ort123.json"), load("quant_minmax__ort130.json"), load("quant_minmax.json")
+tracked = hashlib.sha256(open(os.path.join(HERE, "runs", "detector_int8_minmax.onnx"), "rb").read()).hexdigest()
+claims = (f"under ORT {r123['ort']} the INT8 file is bit-identical", f"(SHA-256 {tracked[:12]}…)",
+          f"under ORT {r130['ort']} the bytes\ndiffer ({r130['sha256'][:12]}…)",
+          f"mAP {r130['score']['mAP']:.6f}, {r130['score']['n_dets']:,}\ndetections")
+check("INT8 reproduction note", all(c in text for c in claims) and r123["sha256"] == tracked != r130["sha256"]
+      and r123["score"]["mAP"] == r130["score"]["mAP"] == qm["score"]["mAP"]
+      and r130["score"]["n_dets"] == qm["score"]["n_dets"], f"README must contain {claims}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
