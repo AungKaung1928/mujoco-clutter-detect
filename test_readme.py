@@ -1,4 +1,4 @@
-"""README headline table against the committed result files (no model, stdlib only).
+"""README headline table and the real-photo table against the committed result files (no model, stdlib only).
 
 Each row of the "graph | mAP | Δ mAP | ms 1 thread | ms 4 threads" table at the top of
 README.md must equal the JSON it was copied from. Δ is the exact difference, rounded
@@ -68,6 +68,24 @@ for prefix, want in expected.items():
 print("claims next to the table")
 mm_line = next(l for l in LINES if l.startswith("| INT8 static, MinMax"))
 check("MinMax = Entropy (same SHA-256)", mm["sha256"] == ent["sha256"] and "same SHA-256" in mm_line)
+
+print("Step 7, real photos (runs/real_hope.json)")
+hope = load("real_hope.json")
+for prefix, ckpt in (("| `easy` (fixed appearance) |", "det_easy_none.pt"),
+                     ("| `hard` (randomised hue, table, light) |", "det_hard_none.pt")):
+    m = hope["models"][ckpt]
+    line = next(l for l in LINES if l.startswith(prefix))
+    got = [c.strip() for c in line.strip().strip("|").split("|")][1:]
+    want = [f"{m['mAP']:.4f}", f"{m['AP50']:.4f}", f"{m['AP_box']:.4f}", f"{m['AP_cylinder']:.4f}",
+            f"{m['recall50_box']:.3f} / {m['recall50_cylinder']:.3f}"]
+    check(prefix, got == want, f"README {got} vs JSON {want}")
+boxes, cans = hope["objects"]["box"], hope["objects"]["cylinder"]
+# an ignored object is entered once per class, so two entries are one object
+per_image = (boxes + cans + hope["ignored_entries"] / 2) / hope["images"]
+text = "\n".join(LINES)
+check("objects scored and per image",
+      f"{boxes} boxes and {cans} cans scored, {per_image:.1f} objects per image" in text)
+check("median object size", f"median\n{hope['object_px_median']} px at 192 px" in text)
 
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
