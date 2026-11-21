@@ -907,8 +907,10 @@ Nor is the class label: scored class-agnostic (a detection counts on any can or 
 whatever its label), `hard` gets mAP 0.0084 (0.0063 per class) and recall@0.5 0.089.
 The detector misses the objects; it does not find them and name them wrong.
 Recall alone overstates it: the same boxes scored on a photo of another scene still reach
-recall@0.5 0.048 (top 10) and 0.108 (top 100), about half of the real values. Ranked by score
-the signal is real but small: class-agnostic mAP 0.0084 against 0.0007 by chance.
+recall@0.5 0.048 (top 10) and 0.108 (top 100), about half of the real values. Ranked by score it
+looks better, class-agnostic mAP 0.0084 against 0.0007 by chance, but the 50 photos come from
+10 scenes: resampling whole scenes puts the difference between -0.0002 and 0.0183 (95 %), so
+even that is not shown to beat chance.
 **Negative result: neither model transfers.** Randomisation helps (mAP 31×, box recall
 2% → 13%) but from almost nothing to almost nothing. Diagnostics, not in the table:
 class-agnostic recall@0.5 is 0.089 for `hard`, so localisation fails too, not only the

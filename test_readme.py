@@ -93,6 +93,9 @@ check("class-agnostic row", agn in "\n".join(LINES), f"README must contain {agn!
 c100 = k100["models"]["det_hard_none.pt"]
 chance = (f"recall@0.5 {h10['chance_agnostic_recall50']:.3f} (top 10) and {c100['chance_agnostic_recall50']:.3f} (top 100)",
           f"class-agnostic mAP {h10['agnostic_mAP']:.4f} against {h10['chance_agnostic_mAP']:.4f} by chance")
+lo, hi = h10["ci95_agnostic_mAP_minus_chance_by_scene"]
+check("scene bootstrap interval", lo < 0 < hi and f"difference between {lo:.4f} and {hi:.4f} (95 %)"
+      in " ".join(LINES), f"README must give [{lo}, {hi}] and the interval must contain 0")
 check("chance control (boxes from another scene)",
       all(p in "\n".join(LINES) for p in chance) and hope["chance_pairs_same_scene"] == 0,
       f"README must contain {chance}")

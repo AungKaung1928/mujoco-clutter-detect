@@ -85,7 +85,29 @@ def load(root):
     return np.stack(imgs), np.array(gts, np.float64).reshape(-1, 6), np.array(ign, bool), meta
 
 
-def main(root, ckpts, out, k=10):
+def scene_bootstrap(dets, moved, gts, ign, meta, n_boot=500, seed=0):
+    """95 % interval of class-agnostic mAP minus its chance control, resampling whole scenes
+    (photos of one scene share objects and layout, so they are not independent)."""
+    one = lambda x: np.c_[x[:, :1], np.zeros(len(x)), x[:, 2:]]
+    scenes = sorted({m["scene"] for m in meta})
+    by_scene = {sc: [i for i, m in enumerate(meta) if m["scene"] == sc] for sc in scenes}
+
+    def take(x, pick):          # rows of the picked photos, renumbered 0..len(pick)-1
+        return np.concatenate([np.c_[np.full((x[:, 0] == i).sum(), j), x[x[:, 0] == i][:, 1:]]
+                               for j, i in enumerate(pick)])
+
+    rng = np.random.default_rng(seed)
+    diff = []
+    for _ in range(n_boot):
+        pick = [i for sc in rng.choice(scenes, len(scenes)) for i in by_scene[sc]]
+        g = one(take(gts, pick))
+        ig = np.concatenate([ign[gts[:, 0] == i] for i in pick])
+        diff.append(AP.evaluate(one(take(dets, pick)), g, n_classes=1, gt_ignore=ig)["mAP"]
+                    - AP.evaluate(one(take(moved, pick)), g, n_classes=1, gt_ignore=ig)["mAP"])
+    return [round(float(x), 4) for x in np.percentile(diff, [2.5, 97.5])]
+
+
+def main(root, ckpts, out, k=10, boot=500):
     imgs, gts, ign, meta = load(root)
     n_pos = {c: int(((gts[:, 1] == C.CLS_ID[c]) & ~ign).sum()) for c in ("box", "cylinder")}
     sizes = np.sqrt((gts[~ign, 4] - gts[~ign, 2]) * (gts[~ign, 5] - gts[~ign, 3]))
@@ -120,9 +142,11 @@ def main(root, ckpts, out, k=10):
                "agnostic_mAP": round(float(ra["mAP"]), 4), "agnostic_AP50": round(float(ra["AP50"]), 4),
                "agnostic_recall50": round(float(ra["recall"][0, 0]), 4),
                "chance_agnostic_recall50": round(float(rc["recall"][0, 0]), 4),
-               "chance_agnostic_mAP": round(float(rc["mAP"]), 4)}
+               "chance_agnostic_mAP": round(float(rc["mAP"]), 4),
+               "ci95_agnostic_mAP_minus_chance_by_scene":
+                   scene_bootstrap(dets, moved, gts, ign, meta, boot) if boot else None}
         res["models"][os.path.basename(path)] = row
-        print(f"{os.path.basename(path):24s} " + "  ".join(f"{k} {v:.4f}" for k, v in row.items()))
+        print(f"{os.path.basename(path):24s} " + "  ".join(f"{k} {v:.4f}" if isinstance(v, float) else f"{k} {v}" for k, v in row.items()))
     if out:
         with open(out, "w") as fh:
             json.dump(res, fh, indent=1)
@@ -133,7 +157,8 @@ if __name__ == "__main__":
     a.add_argument("--root", required=True, help="unzipped hope/val")
     a.add_argument("--ckpt", nargs="+", default=["runs/det_easy_none.pt", "runs/det_hard_none.pt"])
     a.add_argument("--out", default="")
+    a.add_argument("--boot", type=int, default=500, help="scene bootstrap draws (0 = skip; slow at --k 100)")
     a.add_argument("--k", type=int, default=10, help="detections kept per image (10 = the sim setting)")
     args = a.parse_args()
     torch.set_num_threads(1)
-    main(args.root, args.ckpt, args.out, args.k)
+    main(args.root, args.ckpt, args.out, args.k, args.boot)

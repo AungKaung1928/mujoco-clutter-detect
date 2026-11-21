@@ -21,7 +21,8 @@
    "agnostic_AP50": 0.006,
    "agnostic_recall50": 0.1094,
    "chance_agnostic_recall50": 0.1043,
-   "chance_agnostic_mAP": 0.0005
+   "chance_agnostic_mAP": 0.0005,
+   "ci95_agnostic_mAP_minus_chance_by_scene": null
   },
   "det_hard_none.pt": {
    "mAP": 0.0068,
@@ -34,7 +35,8 @@
    "agnostic_AP50": 0.0397,
    "agnostic_recall50": 0.2205,
    "chance_agnostic_recall50": 0.1077,
-   "chance_agnostic_mAP": 0.001
+   "chance_agnostic_mAP": 0.001,
+   "ci95_agnostic_mAP_minus_chance_by_scene": null
   }
  },
  "chance_pairs_same_scene": 0,
