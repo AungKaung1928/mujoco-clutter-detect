@@ -932,6 +932,10 @@ Split by region (`obj_bg`: inside the object boxes against outside them), the ph
 (43×) dwarfs the object gap (3.5×), because the sim table is nearly flat. `texd`'s
 distractors lift the background to 92.7, `tex` leaves it at 21.2. The object number includes
 outlines, not only texture: the fixed-look `easy` set reaches 4133.9 inside its boxes on edges alone.
+Texture, not noise, carries most of it: Immerkær's estimator (CVIU 1996) puts the photos' white-noise
+σ at 3.57 grey levels at most (sim 0.39), and white noise that size adds at most 20σ² = 255 to the
+Laplacian variance of 1461.5. The photometric augmentation already matches that noise (σ 3.53) and
+still stops at 306.8: matching the noise does not reach the texture.
 
 Global image statistics are not it either (`gap_real_hope.py`, `runs/real_hope_gap.json`,
 1 thread, 9 s). The real crops carry far more fine detail (texture or noise; the measure

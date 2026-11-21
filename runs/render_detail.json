@@ -12,7 +12,8 @@
    73.2
   ],
   "saturation_mean": 86.2,
-  "laplacian_var_median": 1461.5
+  "laplacian_var_median": 1461.5,
+  "noise_sigma_median": 3.57
  },
  "real_split": {
   "laplacian_var_objects_median": 2587.4,
@@ -31,7 +32,8 @@
     50.4
    ],
    "saturation_mean": 33.9,
-   "laplacian_var_median": 90.6
+   "laplacian_var_median": 90.6,
+   "noise_sigma_median": 0.39
   },
   "hard_aug_photo": {
    "mean_rgb": [
@@ -45,7 +47,8 @@
     54.6
    ],
    "saturation_mean": 56.9,
-   "laplacian_var_median": 306.8
+   "laplacian_var_median": 306.8,
+   "noise_sigma_median": 3.53
   },
   "tex": {
    "mean_rgb": [
@@ -59,7 +62,8 @@
     54.1
    ],
    "saturation_mean": 156.8,
-   "laplacian_var_median": 98.6
+   "laplacian_var_median": 98.6,
+   "noise_sigma_median": 0.43
   },
   "texd": {
    "mean_rgb": [
@@ -73,7 +77,8 @@
     50.7
    ],
    "saturation_mean": 164.5,
-   "laplacian_var_median": 165.5
+   "laplacian_var_median": 165.5,
+   "noise_sigma_median": 0.59
   }
  },
  "split": {

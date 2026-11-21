@@ -37,13 +37,26 @@ def lap_var(imgs):
     return np.array([cv2.Laplacian(cv2.cvtColor(x, cv2.COLOR_RGB2GRAY), cv2.CV_64F).var() for x in imgs])
 
 
+IMMERKAER = np.array([[1, -2, 1], [-2, 4, -2], [1, -2, 1]], np.float64)
+
+
+def noise_sigma(im):
+    """Immerkaer 1996 (CVIU 64(2), 'Fast Noise Variance Estimation'): white-noise sigma in
+    grey levels. Texture leaks into it, so on real photos it is an upper bound."""
+    g = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY).astype(np.float64)
+    h, w = g.shape
+    r = cv2.filter2D(g, -1, IMMERKAER)[1:-1, 1:-1]
+    return float(np.sqrt(np.pi / 2) * np.abs(r).sum() / (6 * (w - 2) * (h - 2)))
+
+
 def stats(imgs):
     f = np.asarray(imgs).reshape(-1, 3).astype(np.float64)
     sat = [cv2.cvtColor(x, cv2.COLOR_RGB2HSV)[..., 1].mean() for x in imgs]
     return {"mean_rgb": [round(float(v), 1) for v in f.mean(0)],
             "std_rgb": [round(float(v), 1) for v in f.std(0)],
             "saturation_mean": round(float(np.mean(sat)), 1),
-            "laplacian_var_median": round(float(np.median(lap_var(imgs))), 1)}
+            "laplacian_var_median": round(float(np.median(lap_var(imgs))), 1),
+            "noise_sigma_median": round(float(np.median([noise_sigma(x) for x in imgs])), 2)}
 
 
 def obj_bg(imgs, boxes):

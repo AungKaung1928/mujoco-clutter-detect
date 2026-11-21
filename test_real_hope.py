@@ -70,6 +70,8 @@ sharp[:, ::2] = 255                                   # stripes: huge Laplacian 
 check("blur lowers Laplacian variance", bool(G.lap_var(G.blur(sharp, 1.0))[0] < 0.1 * G.lap_var(sharp)[0]), True)
 check("sigma pick: target huge -> smallest sigma", G.pick_sigma(x, 1e9), G.SIGMAS[0])
 check("sigma pick: target ~0 -> largest sigma", G.pick_sigma(x, 1e-6), G.SIGMAS[-1])
+nz = np.clip(128 + np.random.default_rng(1).normal(0, 5, (128, 128, 1)), 0, 255).astype(np.uint8).repeat(3, 2)
+check("noise sigma: grey 5 on a flat image", G.noise_sigma(nz), 5.0, tol=0.3)
 g = np.array([[0, 0, 0, 0, 10, 10], [0, 1, 20, 20, 30, 30], [1, 0, 0, 0, 10, 10]], float)
 d = np.array([[0, 0, 0, 0, 10, 5, .9], [0, 0, 20, 20, 30, 30, .9], [2, 0, 0, 0, 10, 10, .9]], float)
 # half-overlap 50/100 = 0.5; exact match 1.0; image 2 has no objects -> 0

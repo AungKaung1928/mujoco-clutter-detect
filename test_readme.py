@@ -200,5 +200,13 @@ region = (f"{rs[O]} / {rs[B]} and the `hard` sim set {hs[O]} / {hs[B]}: the back
 check("detail by region", all(p in text for p in region) and rd["real_split"] == rs
       and rs[B] / hs[B] > rs[O] / hs[O], f"README must contain {region}")
 
+rn = gap["real"]["noise_sigma_median"]
+an = rd["sets"]["hard_aug_photo"]["noise_sigma_median"]
+noise = (f"σ at {rn} grey levels at most (sim {gap['models']['hard']['sim']['noise_sigma_median']}), and white noise that size adds at most 20σ² = "
+         f"{20 * rn ** 2:.0f} to the\nLaplacian variance of {gap['real']['laplacian_var_median']}",
+         f"matches that noise (σ {an}) and\nstill stops at {rd['sets']['hard_aug_photo']['laplacian_var_median']}")
+check("noise vs texture", all(p in text for p in noise) and 20 * rn ** 2 < gap["real"]["laplacian_var_median"] / 2,
+      f"README must contain {noise}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
