@@ -87,8 +87,8 @@ want = json.load(open("runs/det_hard_none.json"))["mAP"]
 print(f"det_hard_none on hard/val: mAP {got:.4f}, tracked {want:.4f}")
 sys.exit(0 if abs(got - want) < 1e-6 else 1)
 PY
-  "$PY" view_cnn.py --ckpt runs/det_hard_none.pt --regime hard --out out/cnn_detections.png || exit 1
-  echo "wrote out/cnn_detections.png"
+  "$PY" view_cnn.py --ckpt runs/det_hard_none.pt --regime hard --out out/verify/cnn_detections.png || exit 1
+  echo "wrote out/verify/cnn_detections.png (ignored; the tracked figure stays as committed)"
 else
   hr "6/6  skipped -- no checkpoint"
   echo "runs/det_hard_none.pt is missing (it is tracked: check out the full repo). Or retrain:"
