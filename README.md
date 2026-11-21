@@ -927,6 +927,11 @@ coded does not carry the photos' fine detail. Median Laplacian variance is 98.6 
 165.5 for `texd` against 1461.5 on the photos (`hard` 90.6), and their saturation overshoots
 (156.8 against 86.2). The existing photometric augmentation (pixel noise) reaches 306.8, so
 it is the cheaper first arm.
+Split by region (`obj_bg`: inside the object boxes against outside them), the photos give
+2587.4 / 461.5 and the `hard` sim set 744.1 / 10.7: the background gap
+(43×) dwarfs the object gap (3.5×), because the sim table is nearly flat. `texd`'s
+distractors lift the background to 92.7, `tex` leaves it at 21.2. The object number includes
+outlines, not only texture: the fixed-look `easy` set reaches 4133.9 inside its boxes on edges alone.
 
 Global image statistics are not it either (`gap_real_hope.py`, `runs/real_hope_gap.json`,
 1 thread, 9 s). The real crops carry far more fine detail (texture or noise; the measure

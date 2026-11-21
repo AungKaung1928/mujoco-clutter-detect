@@ -24,14 +24,19 @@ N = 48
 
 
 def main(out):
-    res = {"n": N, "real": json.load(open("runs/real_hope_gap.json"))["real"], "sets": {}}
+    gap = json.load(open("runs/real_hope_gap.json"))
+    res = {"n": N, "real": gap["real"], "real_split": gap["real_split"], "sets": {}}
     hard = np.asarray(np.load("data/hard/val_images.npy", mmap_mode="r")[:N])
     res["sets"]["hard"] = G.stats(hard)
+    hb = np.load("data/hard/val_boxes.npy")
+    res["split"] = {"hard": G.obj_bg(hard, hb[hb[:, 0] < N])}
     rng = np.random.default_rng(0)
     res["sets"]["hard_aug_photo"] = G.stats(np.stack([np.rint(photometric(x, rng) * 255).astype(np.uint8) for x in hard]))
     for regime in ("tex", "texd"):
         GD.generate(regime, N, 192, 0, "detailprobe", "tilt")
-        res["sets"][regime] = G.stats(np.load(f"data/{regime}/detailprobe_images.npy"))
+        im = np.load(f"data/{regime}/detailprobe_images.npy")
+        res["sets"][regime] = G.stats(im)
+        res["split"][regime] = G.obj_bg(im, np.load(f"data/{regime}/detailprobe_boxes.npy"))
     for k, v in res["sets"].items():
         print(f"{k:15s} laplacian {v['laplacian_var_median']:7.1f}  saturation {v['saturation_mean']:5.1f}")
     if out:

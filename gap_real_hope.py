@@ -46,6 +46,23 @@ def stats(imgs):
             "laplacian_var_median": round(float(np.median(lap_var(imgs))), 1)}
 
 
+def obj_bg(imgs, boxes):
+    """Median Laplacian variance inside the object boxes and outside them, per image.
+    boxes: rows (image, class, x0, y0, x1, y1, ...); ignored objects count as objects."""
+    obj, bg = [], []
+    for i, im in enumerate(imgs):
+        lap = cv2.Laplacian(cv2.cvtColor(im, cv2.COLOR_RGB2GRAY), cv2.CV_64F)
+        m = np.zeros(lap.shape, bool)
+        for x0, y0, x1, y1 in boxes[boxes[:, 0] == i][:, 2:6].astype(int):
+            m[max(y0, 0):y1, max(x0, 0):x1] = True
+        if m.any():
+            obj.append(lap[m].var())
+        if (~m).any():
+            bg.append(lap[~m].var())
+    return {"laplacian_var_objects_median": round(float(np.median(obj)), 1),
+            "laplacian_var_background_median": round(float(np.median(bg)), 1)}
+
+
 def match_colour(imgs, mean, std):
     """Shift and scale each image's channels to the target mean/std (RGB, 0..255)."""
     x = imgs.astype(np.float64)
@@ -118,10 +135,11 @@ def confidence(model, sim, imgs, gts, meta, thr=0.3, n_boot=500, seed=0):
 
 def main(root, out):
     imgs, gts, ign, meta = E.load(root)
-    res = {"real": stats(imgs), "n_sim": N_SIM, "models": {}}
+    res = {"real": stats(imgs), "real_split": obj_bg(imgs, gts), "n_sim": N_SIM, "models": {}}
     for regime in ("easy", "hard"):
         sim = np.asarray(np.load(f"data/{regime}/val_images.npy", mmap_mode="r")[:N_SIM])
         s = stats(sim)
+        sim_boxes = np.load(f"data/{regime}/val_boxes.npy")
         sigma = pick_sigma(imgs, s["laplacian_var_median"])
         ck = torch.load(f"runs/det_{regime}_none.pt", map_location="cpu", weights_only=False)
         model = D.build(ck)
@@ -129,7 +147,7 @@ def main(root, out):
         variants = {"raw": imgs, "colour": match_colour(imgs, s["mean_rgb"], s["std_rgb"]),
                     "blur": blur(imgs, sigma)}
         variants["both"] = match_colour(variants["blur"], s["mean_rgb"], s["std_rgb"])
-        row = {"sim": s, "blur_sigma": sigma,
+        row = {"sim": s, "sim_split": obj_bg(sim, sim_boxes[sim_boxes[:, 0] < N_SIM]), "blur_sigma": sigma,
                "blurred_laplacian_var_median": round(float(np.median(lap_var(variants["blur"]))), 1),
                "rows": {}}
         for name, x in variants.items():

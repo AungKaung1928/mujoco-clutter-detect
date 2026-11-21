@@ -14,6 +14,10 @@
   "saturation_mean": 86.2,
   "laplacian_var_median": 1461.5
  },
+ "real_split": {
+  "laplacian_var_objects_median": 2587.4,
+  "laplacian_var_background_median": 461.5
+ },
  "sets": {
   "hard": {
    "mean_rgb": [
@@ -70,6 +74,20 @@
    ],
    "saturation_mean": 164.5,
    "laplacian_var_median": 165.5
+  }
+ },
+ "split": {
+  "hard": {
+   "laplacian_var_objects_median": 796.2,
+   "laplacian_var_background_median": 11.3
+  },
+  "tex": {
+   "laplacian_var_objects_median": 671.3,
+   "laplacian_var_background_median": 21.2
+  },
+  "texd": {
+   "laplacian_var_objects_median": 661.1,
+   "laplacian_var_background_median": 92.7
   }
  }
 }

@@ -189,5 +189,16 @@ claims = (f"same ORT {co['ort']} as the Python wheel",
 check("C++ detector paragraph", all(c in text for c in claims) and par["max_abs_diff"] == 0
       and par["class_mismatch"] == par["index_mismatch"] == 0, f"README must contain {claims}")
 
+print("Step 7, detail by region (runs/real_hope_gap.json, runs/render_detail.json)")
+O, B = "laplacian_var_objects_median", "laplacian_var_background_median"
+rs, hs, es = gap["real_split"], gap["models"]["hard"]["sim_split"], gap["models"]["easy"]["sim_split"]
+sp = rd["split"]
+region = (f"{rs[O]} / {rs[B]} and the `hard` sim set {hs[O]} / {hs[B]}: the background gap\n"
+          f"({rs[B] / hs[B]:.0f}×) dwarfs the object gap ({rs[O] / hs[O]:.1f}×)",
+          f"distractors lift the background to {sp['texd'][B]}, `tex` leaves it at {sp['tex'][B]}",
+          f"reaches {es[O]} inside its boxes on edges alone")
+check("detail by region", all(p in text for p in region) and rd["real_split"] == rs
+      and rs[B] / hs[B] > rs[O] / hs[O], f"README must contain {region}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)

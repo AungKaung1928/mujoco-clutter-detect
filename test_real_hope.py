@@ -73,6 +73,12 @@ check("sigma pick: target ~0 -> largest sigma", G.pick_sigma(x, 1e-6), G.SIGMAS[
 g = np.array([[0, 0, 0, 0, 10, 10], [0, 1, 20, 20, 30, 30], [1, 0, 0, 0, 10, 10]], float)
 d = np.array([[0, 0, 0, 0, 10, 5, .9], [0, 0, 20, 20, 30, 30, .9], [2, 0, 0, 0, 10, 10, .9]], float)
 # half-overlap 50/100 = 0.5; exact match 1.0; image 2 has no objects -> 0
+flat = np.full((1, 64, 64, 3), 128, np.uint8)
+flat[0, 20:40, 20:40:2] = 255                         # stripes only inside the box
+r = G.obj_bg(flat, np.array([[0, 0, 20, 20, 40, 40]], float))
+# the 3x3 kernel leaks the box edge into the 1-px rim outside it, so background is small, not 0
+check("detail split: background < 2 % of a striped box",
+      r["laplacian_var_background_median"] < 0.02 * r["laplacian_var_objects_median"], True)
 check("best IoU per detection, own image only", G.best_iou(d, g), [0.5, 1.0, 0.0])
 
 if len(sys.argv) > 1:
