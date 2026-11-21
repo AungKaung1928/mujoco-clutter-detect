@@ -937,8 +937,9 @@ class; keeping 100 peaks instead of 10 changes mAP by under 0.001 (`runs/real_ho
 so the per-image cap is not the cause; above score 0.3 the `hard` model calls 353 of 398 detections `box`,
 cans included. The photos have printed labels, objects piled in a bag and a sofa behind
 them; the randomiser varies only hue, table and light of flat-coloured primitives.
-Which of those differences costs most is not measured. Next lever to test: textured
-objects and distractors in the sim, then re-measure here. Checked before any training
+Which of those differences costs most is measured below: not the background, largely the
+printed texture, the piles for the rest. The lever: textured objects and distractors in the
+sim, then re-measure here. Checked before any training
 (`render_detail.py`, `runs/render_detail.json`, 48 renders each, 3 s): the texture regime as
 coded does not carry the photos' fine detail. Median Laplacian variance is 98.6 for `tex` and
 165.5 for `texd` against 1461.5 on the photos (`hard` 90.6), and their saturation overshoots
