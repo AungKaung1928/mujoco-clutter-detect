@@ -146,18 +146,34 @@ def confidence(model, sim, imgs, gts, meta, thr=0.3, n_boot=500, seed=0):
     return res
 
 
+def objects_flattened(imgs, gts, grey):
+    """Sim grey everywhere, each labelled or ignored box filled with the photo's mean colour
+    inside it; largest box first, so smaller (usually front) objects stay on top."""
+    out = np.full_like(imgs, grey)
+    for i in range(len(imgs)):
+        b = gts[gts[:, 0] == i]
+        for x0, y0, x1, y1 in b[np.argsort(-(b[:, 4] - b[:, 2]) * (b[:, 5] - b[:, 3]))][:, 2:6].astype(int):
+            patch = imgs[i, max(y0, 0):y1, max(x0, 0):x1]
+            if patch.size:
+                out[i, max(y0, 0):y1, max(x0, 0):x1] = patch.reshape(-1, 3).mean(0)
+    return out
+
+
 def background_masked(model, imgs, gts, ign, sim_mean):
-    """DIAGNOSTIC, uses the labels (not a fix): is the background what fools the model?
+    """DIAGNOSTIC, uses the labels (not a fix): what about the photos fools the model?
     Outside every labelled or ignored box the photo is blurred (sigma 4) or set to the sim
-    set's mean grey; inside, the photo is unchanged."""
+    set's mean grey, the inside unchanged; then, on top of the grey, every object flattened
+    to its mean colour (printed texture removed; boxes become rectangles, so only the
+    class-agnostic numbers are fair for cans)."""
     m = np.zeros(imgs.shape[:3], bool)
     for i, x0, y0, x1, y1 in gts[:, [0, 2, 3, 4, 5]].astype(int):
         m[i, max(y0, 0):y1, max(x0, 0):x1] = True
     m = m[..., None]
+    grey = int(round(float(np.mean(sim_mean))))
     out = {}
-    for name, bg in (("background_blurred", blur(imgs, 4.0)),
-                     ("background_grey", np.full_like(imgs, int(round(float(np.mean(sim_mean))))))):
-        x = np.where(m, imgs, bg)
+    for name, x in (("background_blurred", np.where(m, imgs, blur(imgs, 4.0))),
+                    ("background_grey", np.where(m, imgs, np.full_like(imgs, grey))),
+                    ("background_grey_objects_mean_colour", objects_flattened(imgs, gts, grey))):
         row = score(model, x, gts, ign)
         d = predict(model, x, E.IMG_SIZE, k=10)
         hi = d[d[:, 6] > 0.3]

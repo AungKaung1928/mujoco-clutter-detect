@@ -216,5 +216,12 @@ masked = (f"`hard` reaches mAP {gr['mAP']:.4f} (class-agnostic {gr['agnostic_mAP
 check("background-masked diagnostic", all(p in text for p in masked) and gr["mAP"] < 0.02,
       f"README must contain {masked}; and with no background mAP must stay near 0")
 
+fl = bm["background_grey_objects_mean_colour"]
+sim_agn = load("det_hard_none.json")["agnostic_mAP"]
+flat = (f"lifts class-agnostic mAP from {gr['agnostic_mAP']:.4f}\nto {fl['agnostic_mAP']:.4f} and confident boxes on an object from "
+        f"{gr['hit50_above_0.3']:.3f} to {fl['hit50_above_0.3']:.3f}", f"still score far below the sim's own\n{sim_agn:.4f}")
+check("objects flattened diagnostic", all(p in text for p in flat) and fl["agnostic_mAP"] > 2 * gr["agnostic_mAP"]
+      and fl["agnostic_mAP"] < 0.5 * sim_agn, f"README must contain {flat}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)

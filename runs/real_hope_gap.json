@@ -160,6 +160,14 @@
      "recall50_box": 0.16,
      "recall50_cylinder": 0.0,
      "hit50_above_0.3": 0.393
+    },
+    "background_grey_objects_mean_colour": {
+     "mAP": 0.0255,
+     "AP50": 0.0733,
+     "agnostic_mAP": 0.0702,
+     "recall50_box": 0.2909,
+     "recall50_cylinder": 0.0032,
+     "hit50_above_0.3": 0.64
     }
    }
   }

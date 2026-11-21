@@ -942,6 +942,12 @@ the labels (not a fix), everything outside the labelled boxes is replaced: with 
 hit an object; blurred, 0.0057 and 0.232; as taken, 0.0063 and 0.264. With no background
 at all the model still misses the objects, so the failure is on the objects themselves: the next
 randomisation has to change how the objects look, not only what surrounds them.
+Which part of the objects: on the same grey, each labelled box filled with the photo's mean colour
+inside it (printed labels gone, every object a flat rectangle) lifts class-agnostic mAP from 0.0140
+to 0.0702 and confident boxes on an object from 0.393 to 0.640. The printed texture is a large part of
+the failure. It is not all of it: flat rectangles in a pile still score far below the sim's own
+0.9099, so the piles and shapes matter too (cans become rectangles here, so only the
+class-agnostic numbers are fair).
 
 Global image statistics are not it either (`gap_real_hope.py`, `runs/real_hope_gap.json`,
 1 thread, 9 s). The real crops carry far more fine detail (texture or noise; the measure
