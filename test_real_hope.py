@@ -1,9 +1,11 @@
-"""eval_real_hope checks that need no dataset.
+"""eval_real_hope checks; all but the last need no dataset.
 
 Wrong crop geometry or a wrong class map would not crash; it would only make
 the real-photo numbers meaningless. Expected values are derived by hand.
 
-Run:  python test_real_hope.py
+Run:  python test_real_hope.py [unzipped hope/val]
+With the HOPE path, the real labels go through load() and back into ap.evaluate as
+detections: mAP must be 1.0, so a low detector score on the photos is not the harness.
 """
 import json
 import os
@@ -55,6 +57,17 @@ check("box counted as box", gts[~ign][:, 1].tolist(), [C.CLS_ID["box"], C.CLS_ID
 check("ignored entries (2 objects x 2 classes)", int(ign.sum()), 4)
 check("ignored entries cover both classes", sorted(gts[ign][:, 1].tolist()), [0, 0, 1, 1])
 check("box coordinates in crop pixels", gts[0, 2:], [100 * s, 100 * s, 208 * s, 154 * s])
+
+if len(sys.argv) > 1:
+    import ap as AP
+    print("\nreal HOPE labels fed back as detections")
+    imgs, gts, ign, meta = E.load(sys.argv[1])
+    dets = np.c_[gts[~ign], np.ones((~ign).sum())]
+    check("objects scored (README: 275 boxes + 310 cans)", int((~ign).sum()), 585)
+    check("labels as detections: mAP", AP.evaluate(dets, gts, gt_ignore=ign)["mAP"], 1.0)
+    on_ignored = np.r_[dets, np.c_[gts[ign], np.full(ign.sum(), 0.99)]]
+    check("+ detections on ignored objects: not false positives",
+          AP.evaluate(on_ignored, gts, gt_ignore=ign)["mAP"], 1.0)
 
 print(f"\n{'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")
 sys.exit(1 if FAILED else 0)

@@ -897,6 +897,8 @@ the frame, so the crop is the full 1,080 px (42.5°). Objects come out at a medi
 | `hard` (randomised hue, table, light) | 0.0063 | 0.0218 | 0.0126 | 0.0000 | 0.131 / 0.000 |
 
 275 boxes and 310 cans scored, 16.9 objects per image counting ignored ones (sim: 3–6).
+The harness is not the cause: `python test_real_hope.py <hope/val>` feeds these labels back
+as detections and gets mAP 1.0 (also with extra detections on every ignored object).
 **Negative result: neither model transfers.** Randomisation helps (mAP 31×, box recall
 2% → 13%) but from almost nothing to almost nothing. Diagnostics, not in the table:
 class-agnostic recall@0.5 is 0.089 for `hard`, so localisation fails too, not only the
