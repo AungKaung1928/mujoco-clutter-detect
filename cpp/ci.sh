@@ -21,6 +21,6 @@ mkdir -p "$work/lib"
 ln -sf "$lib/libonnxruntime.so.1.30.0" "$work/lib/libonnxruntime.so.1"
 
 ORT_INCLUDE="$work/ort/include/onnxruntime/core/session" ORT_LIB="$work/lib" "$here/build.sh"
-for m in runs/detector_int8_minmax.onnx runs/detector_pre.onnx; do
+for m in runs/detector_int8_minmax.onnx runs/detector.onnx; do
   "$py" "$here/bench.py" --model "$m" --synthetic --n 50 --n-time 100 --rounds 1
 done
