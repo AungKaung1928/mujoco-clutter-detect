@@ -38,6 +38,8 @@ jobs:
         run: python test_onnx_parity.py
       - name: texl label textures (no rendering)
         run: python test_textures.py
+      - name: edge/NOTES.md numbers equal the runs/*.json they cite
+        run: python edge/test_notes.py
 
   cpp-ort:
     # C++ detector (cpp/detect_ort.cpp) against ONNX Runtime 1.30.0 must match Python ORT +
