@@ -151,7 +151,7 @@ top of every image — dead pixels, and a trivial cue for the network to latch o
 From a fresh clone.
 
 ```bash
-git clone https://github.com/AungKaung1928/mujoco-clutter-detect.git
+git clone <this repo URL>
 cd mujoco-clutter-detect
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
