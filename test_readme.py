@@ -195,6 +195,15 @@ claims = (f"same ORT {co['ort']} as the Python wheel",
 check("C++ detector paragraph", all(c in text for c in claims) and par["max_abs_diff"] == 0
       and par["class_mismatch"] == par["index_mismatch"] == 0, f"README must contain {claims}")
 
+print("C++ vs classical (runs/cpp_ort_classical*.json)")
+cc = [load(f"cpp_ort_classical{s}.json") for s in ("", "_r2", "_r3")]
+trio = lambda k: " / ".join(f"{r[k]['e2e_ms']:.3f}" for r in cc)
+claims = (f"C++ INT8 end to end {trio('cpp_ms_p50')} ms, classical {trio('classical_ms_p50')} ms, "
+          f"Python INT8 end to end {trio('python_ms_p50')} ms",)
+check("C++ vs classical paragraph", all(c in text for c in claims)
+      and all(r["cpp_ms_p50"]["e2e_ms"] < r["classical_ms_p50"]["e2e_ms"] < r["python_ms_p50"]["e2e_ms"] for r in cc)
+      and all(r["parity"]["max_abs_diff"] == 0 for r in cc), f"README must contain {claims}")
+
 print("Step 7, detail by region (runs/real_hope_gap.json, runs/render_detail.json)")
 O, B = "laplacian_var_objects_median", "laplacian_var_background_median"
 rs, hs, es = gap["real_split"], gap["models"]["hard"]["sim_split"], gap["models"]["easy"]["sim_split"]

@@ -86,6 +86,7 @@ def main():
     ap.add_argument("--n-time", type=int, default=1000)
     ap.add_argument("--rounds", type=int, default=5)
     ap.add_argument("--synthetic", action="store_true")
+    ap.add_argument("--classical", action="store_true", help="also time the classical bgsub+ws pipeline per image")
     ap.add_argument("--out", default="")
     a = ap.parse_args()
     torch.set_num_threads(1)
@@ -121,11 +122,23 @@ def main():
         q = lambda v, p: float(np.quantile(v, p)) * 1e3
         return {"model_ms": [q(tm, .5), q(tm, .99)], "e2e_ms": [q(te, .5), q(te, .99)]}
 
-    python()  # warm-up; the C++ binary warms itself up
-    c_runs, p_runs = [], []
+    def classical():
+        import baseline_cv as BC
+        t = []
+        for im in imgs:
+            t0 = time.perf_counter()
+            BC.detect_one(im, "bgsub+ws", imgs.shape[1])
+            t.append(time.perf_counter() - t0)
+        return {"e2e_ms": [float(np.quantile(t, .5)) * 1e3, float(np.quantile(t, .99)) * 1e3]}
+
+    fs = [cpp, python] + ([classical] if a.classical else [])
+    for f in fs[1:]:
+        f()  # warm-up; the C++ binary warms itself up
+    runs = {f: [] for f in fs}
     for r in range(a.rounds):
-        for f in ((cpp, python) if r % 2 == 0 else (python, cpp)):
-            (c_runs if f is cpp else p_runs).append(f())
+        for f in (fs if r % 2 == 0 else fs[::-1]):
+            runs[f].append(f())
+    c_runs, p_runs = runs[cpp], runs[python]
     last = c_runs[-1]
     med = lambda rs, key, j=None: float(np.median([x[key][j] if j is not None else x[key] for x in rs]))
     out = {"model": a.model, "images": "synthetic" if a.synthetic else f"hard/val[:{a.n}]",
@@ -136,6 +149,9 @@ def main():
            "cpp_ms_p99": {k: round(med(c_runs, k, 1), 4) for k in ("model_ms", "decode_ms", "e2e_ms")},
            "python_ms_p50": {k: round(med(p_runs, k, 0), 4) for k in ("model_ms", "e2e_ms")},
            "python_ms_p99": {k: round(med(p_runs, k, 1), 4) for k in ("model_ms", "e2e_ms")}}
+    if a.classical:
+        out["classical_ms_p50"] = {"e2e_ms": round(med(runs[classical], "e2e_ms", 0), 4)}
+        out["classical_ms_p99"] = {"e2e_ms": round(med(runs[classical], "e2e_ms", 1), 4)}
     print(json.dumps(out, indent=1))
     ok = all(x["max_abs_diff"] < 1e-4 and x["class_mismatch"] == 0 and x["index_mismatch"] == 0 for x in c_runs)
     if a.out:

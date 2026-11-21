@@ -24,7 +24,11 @@ So the model call costs the same from both languages; the Python limit is normal
 image. That wrapper decides the race with the classical pipeline: timed together on one thread,
 classical 1.8029 ms (edge_vs_classical.json › ms_per_img/classical bgsub+ws/median) against INT8
 end to end in Python 1.9444 ms (edge_vs_classical.json › ms_per_img/int8 end to end/median).
-C++ end to end against classical in one process: not measured yet.
+Timed per image in the same interleaved rounds (`cpp/bench.py --classical`, 3 runs, first run
+cited), C++ end to end takes 1.5025 ms (cpp_ort_classical.json › cpp_ms_p50/e2e_ms) against
+classical 1.5098 ms (cpp_ort_classical.json › classical_ms_p50/e2e_ms) and Python 1.7456 ms (cpp_ort_classical.json › python_ms_p50/e2e_ms):
+in C++ the detector ties the classical pipeline;
+the runs `_r2`, `_r3` give the same order (README).
 
 ## The host
 

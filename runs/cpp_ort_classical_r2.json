@@ -1,0 +1,39 @@
+{
+ "model": "runs/detector_int8_minmax.onnx",
+ "images": "hard/val[:200]",
+ "images_with_tie_at_k": 144,
+ "rounds": 5,
+ "threads": 1,
+ "ort": "1.30.0",
+ "load1": 2.31,
+ "parity": {
+  "max_abs_diff": 0.0,
+  "class_mismatch": 0,
+  "index_mismatch": 0,
+  "detections_above_thr": 1134
+ },
+ "cpp_ms_p50": {
+  "model_ms": 1.3749,
+  "decode_ms": 0.0546,
+  "e2e_ms": 1.4919
+ },
+ "cpp_ms_p99": {
+  "model_ms": 2.1925,
+  "decode_ms": 0.0987,
+  "e2e_ms": 2.5879
+ },
+ "python_ms_p50": {
+  "model_ms": 1.4077,
+  "e2e_ms": 1.7778
+ },
+ "python_ms_p99": {
+  "model_ms": 2.2833,
+  "e2e_ms": 2.0691
+ },
+ "classical_ms_p50": {
+  "e2e_ms": 1.5162
+ },
+ "classical_ms_p99": {
+  "e2e_ms": 1.8028
+ }
+}
