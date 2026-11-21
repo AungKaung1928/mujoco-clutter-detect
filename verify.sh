@@ -73,11 +73,25 @@ hr "5/6  classical baseline on val"
 
 if have_ckpt; then
   hr "6/6  detector on val + qualitative figure"
-  python view_cnn.py --ckpt runs/det_hard_none.pt --regime hard --out out/cnn_detections.png || exit 1
+  # Re-score the tracked checkpoint: mAP must equal runs/det_hard_none.json (README 0.9107).
+  "$PY" - <<'PY' || exit 1
+import json, sys
+import numpy as np, torch
+import ap as AP, common as C, detector as D, train_det as T
+ck = torch.load("runs/det_hard_none.pt", map_location="cpu", weights_only=False)
+model = D.build(ck)
+model.load_state_dict(ck["model"])
+imgs, boxes, meta = C.load_split(".", "hard", "val")
+got = AP.evaluate(T.predict(model, imgs, meta["img_size"]), boxes[:, :6].astype(np.float64))["mAP"]
+want = json.load(open("runs/det_hard_none.json"))["mAP"]
+print(f"det_hard_none on hard/val: mAP {got:.4f}, tracked {want:.4f}")
+sys.exit(0 if abs(got - want) < 1e-6 else 1)
+PY
+  "$PY" view_cnn.py --ckpt runs/det_hard_none.pt --regime hard --out out/cnn_detections.png || exit 1
   echo "wrote out/cnn_detections.png"
 else
   hr "6/6  skipped -- no checkpoint"
-  echo "runs/*.pt is gitignored. Retrain with:"
+  echo "runs/det_hard_none.pt is missing (it is tracked: check out the full repo). Or retrain:"
   echo "    nice -n 10 python train_det.py --regime hard --epochs 25 \\"
   echo "        --save runs/det_hard_none.json --ckpt runs/det_hard_none.pt"
   echo "~35 min on 8 threads. See README for the thermal note."
