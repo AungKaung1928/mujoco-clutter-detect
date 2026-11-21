@@ -34,6 +34,8 @@ jobs:
         run: python test_backbone.py
       - name: README headline table vs runs/*.json
         run: python test_readme.py
+      - name: tracked detector.onnx is still the tracked det_hard_none.pt
+        run: python test_onnx_parity.py
 
   cpp-ort:
     # C++ detector (cpp/detect_ort.cpp) against ONNX Runtime 1.30.0 must match Python ORT +
