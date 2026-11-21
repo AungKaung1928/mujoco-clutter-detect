@@ -16,7 +16,10 @@
    "AP_box": 0.0001,
    "AP_cylinder": 0.0003,
    "recall50_box": 0.0182,
-   "recall50_cylinder": 0.0226
+   "recall50_cylinder": 0.0226,
+   "agnostic_mAP": 0.0006,
+   "agnostic_AP50": 0.0032,
+   "agnostic_recall50": 0.0359
   },
   "det_hard_none.pt": {
    "mAP": 0.0063,
@@ -24,7 +27,10 @@
    "AP_box": 0.0126,
    "AP_cylinder": 0.0,
    "recall50_box": 0.1309,
-   "recall50_cylinder": 0.0
+   "recall50_cylinder": 0.0,
+   "agnostic_mAP": 0.0084,
+   "agnostic_AP50": 0.0277,
+   "agnostic_recall50": 0.0889
   }
  },
  "k": 10,

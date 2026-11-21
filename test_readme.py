@@ -86,6 +86,10 @@ sentence = (f"caps recall at {hope['max_recall_at_k']:.3f} here\n({hope['images_
             f"{h100['recall50_cylinder']:.3f} cylinder")
 check("top-10 cap and top-100 row", all(p in "\n".join(LINES) for p in sentence) and k100["k"] == 100,
       f"README must contain {sentence}")
+h10 = hope["models"]["det_hard_none.pt"]
+agn = (f"`hard` gets mAP\n{h10['agnostic_mAP']:.4f} and recall@0.5 {h10['agnostic_recall50']:.3f} "
+       f"against {h10['mAP']:.4f} per class")
+check("class-agnostic row", agn in "\n".join(LINES), f"README must contain {agn!r}")
 boxes, cans = hope["objects"]["box"], hope["objects"]["cylinder"]
 # an ignored object is entered once per class, so two entries are one object
 per_image = (boxes + cans + hope["ignored_entries"] / 2) / hope["images"]

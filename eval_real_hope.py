@@ -103,11 +103,15 @@ def main(root, ckpts, out, k=10):
         model.load_state_dict(ck["model"])
         dets = predict(model, imgs, IMG_SIZE, k=k)
         r = AP.evaluate(dets, gts, gt_ignore=ign)
+        one = lambda x: np.c_[x[:, :1], np.zeros(len(x)), x[:, 2:]]   # every class -> 0
+        ra = AP.evaluate(one(dets), one(gts), n_classes=1, gt_ignore=ign)
         row = {"mAP": round(float(r["mAP"]), 4), "AP50": round(float(r["AP50"]), 4),
                "AP_box": round(float(r["ap_per_class"][C.CLS_ID["box"]]), 4),
                "AP_cylinder": round(float(r["ap_per_class"][C.CLS_ID["cylinder"]]), 4),
                "recall50_box": round(float(r["recall"][0, C.CLS_ID["box"]]), 4),
-               "recall50_cylinder": round(float(r["recall"][0, C.CLS_ID["cylinder"]]), 4)}
+               "recall50_cylinder": round(float(r["recall"][0, C.CLS_ID["cylinder"]]), 4),
+               "agnostic_mAP": round(float(ra["mAP"]), 4), "agnostic_AP50": round(float(ra["AP50"]), 4),
+               "agnostic_recall50": round(float(ra["recall"][0, 0]), 4)}
         res["models"][os.path.basename(path)] = row
         print(f"{os.path.basename(path):24s} " + "  ".join(f"{k} {v:.4f}" for k, v in row.items()))
     if out:
