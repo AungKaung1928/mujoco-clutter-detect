@@ -269,5 +269,10 @@ check("INT8 reproduction note", all(c in text for c in claims) and r123["sha256"
       and r123["score"]["mAP"] == r130["score"]["mAP"] == qm["score"]["mAP"]
       and r130["score"]["n_dets"] == qm["score"]["n_dets"], f"README must contain {claims}")
 
+print("Headline end-to-end tie (runs/cpp_ort_classical.json)")
+hc = load("cpp_ort_classical.json")
+claim = f"ties the classical pipeline, {hc['cpp_ms_p50']['e2e_ms']:.3f} against {hc['classical_ms_p50']['e2e_ms']:.3f} ms"
+check("headline end-to-end qualifier", claim in " ".join(" ".join(LINES[:20]).split()), f"README top must contain {claim!r}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)

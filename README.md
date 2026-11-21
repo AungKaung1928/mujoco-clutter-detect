@@ -7,7 +7,8 @@ the renderer's segmentation buffer.
 Block 2 of the ML track, **closed 2026-09-06**, reopened for step 6 and **closed
 again 2026-09-23**: static INT8 through ONNX Runtime runs the detector in **1.38 ms
 on one thread** against fp32's 3.57 ms and the classical pipeline's 2.13 ms, at a
-mAP cost of 0.0010; structured pruning was measured and rejected. Block 1 ([`mujoco-cube-pose-cnn`](https://github.com/AungKaung1928/mujoco-cube-pose-cnn))
+mAP cost of 0.0010 (model time, separate sessions; end to end in one session the C++
+build ties the classical pipeline, 1.502 against 1.510 ms); structured pruning was measured and rejected. Block 1 ([`mujoco-cube-pose-cnn`](https://github.com/AungKaung1928/mujoco-cube-pose-cnn))
 regressed one pose from a top-down view and closed at 0.59 mm median error with a
 27k-parameter soft-argmax head.
 
