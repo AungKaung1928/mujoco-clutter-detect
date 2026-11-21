@@ -899,6 +899,10 @@ the frame, so the crop is the full 1,080 px (42.5°). Objects come out at a medi
 275 boxes and 310 cans scored, 16.9 objects per image counting ignored ones (sim: 3–6).
 The harness is not the cause: `python test_real_hope.py <hope/val>` feeds these labels back
 as detections and gets mAP 1.0 (also with extra detections on every ignored object).
+The table keeps the sim's top 10 detections per image, which caps recall at 0.846 here
+(45 of 50 photos have more than 10 scored objects). With the top 100 (`--k 100`,
+`runs/real_hope_k100.json`) `hard` reaches mAP 0.0068, recall@0.5 0.204 box / 0.019 cylinder:
+the cap is not the gap.
 **Negative result: neither model transfers.** Randomisation helps (mAP 31×, box recall
 2% → 13%) but from almost nothing to almost nothing. Diagnostics, not in the table:
 class-agnostic recall@0.5 is 0.089 for `hard`, so localisation fails too, not only the

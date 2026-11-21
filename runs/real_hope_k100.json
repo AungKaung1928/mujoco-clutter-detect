@@ -1,0 +1,33 @@
+{
+ "images": 50,
+ "objects": {
+  "box": 275,
+  "cylinder": 310
+ },
+ "ignored_entries": 520,
+ "object_px_median": 27.9,
+ "crop_px": [
+  1080
+ ],
+ "models": {
+  "det_easy_none.pt": {
+   "mAP": 0.0003,
+   "AP50": 0.0028,
+   "AP_box": 0.0001,
+   "AP_cylinder": 0.0005,
+   "recall50_box": 0.0436,
+   "recall50_cylinder": 0.0839
+  },
+  "det_hard_none.pt": {
+   "mAP": 0.0068,
+   "AP50": 0.0242,
+   "AP_box": 0.0132,
+   "AP_cylinder": 0.0004,
+   "recall50_box": 0.2036,
+   "recall50_cylinder": 0.0194
+  }
+ },
+ "k": 100,
+ "images_over_k": 0,
+ "max_recall_at_k": 1.0
+}

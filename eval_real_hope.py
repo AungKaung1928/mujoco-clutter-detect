@@ -85,20 +85,23 @@ def load(root):
     return np.stack(imgs), np.array(gts, np.float64).reshape(-1, 6), np.array(ign, bool), meta
 
 
-def main(root, ckpts, out):
+def main(root, ckpts, out, k=10):
     imgs, gts, ign, meta = load(root)
     n_pos = {c: int(((gts[:, 1] == C.CLS_ID[c]) & ~ign).sum()) for c in ("box", "cylinder")}
     sizes = np.sqrt((gts[~ign, 4] - gts[~ign, 2]) * (gts[~ign, 5] - gts[~ign, 3]))
     res = {"images": len(imgs), "objects": n_pos, "ignored_entries": int(ign.sum()),
            "object_px_median": round(float(np.median(sizes)), 1), "crop_px": sorted({m["crop_px"] for m in meta}),
            "models": {}}
+    per_img = np.bincount(gts[~ign, 0].astype(int), minlength=len(imgs))
+    res.update(k=k, images_over_k=int((per_img > k).sum()),
+               max_recall_at_k=round(float(np.minimum(per_img, k).sum() / per_img.sum()), 3))
     print(f"{len(imgs)} images, objects {n_pos}, ignored entries {int(ign.sum())}, "
           f"median object {res['object_px_median']} px at {IMG_SIZE} px")
     for path in ckpts:
         ck = torch.load(path, map_location="cpu", weights_only=False)
         model = D.build(ck)
         model.load_state_dict(ck["model"])
-        dets = predict(model, imgs, IMG_SIZE)
+        dets = predict(model, imgs, IMG_SIZE, k=k)
         r = AP.evaluate(dets, gts, gt_ignore=ign)
         row = {"mAP": round(float(r["mAP"]), 4), "AP50": round(float(r["AP50"]), 4),
                "AP_box": round(float(r["ap_per_class"][C.CLS_ID["box"]]), 4),
@@ -117,6 +120,7 @@ if __name__ == "__main__":
     a.add_argument("--root", required=True, help="unzipped hope/val")
     a.add_argument("--ckpt", nargs="+", default=["runs/det_easy_none.pt", "runs/det_hard_none.pt"])
     a.add_argument("--out", default="")
+    a.add_argument("--k", type=int, default=10, help="detections kept per image (10 = the sim setting)")
     args = a.parse_args()
     torch.set_num_threads(1)
-    main(args.root, args.ckpt, args.out)
+    main(args.root, args.ckpt, args.out, args.k)

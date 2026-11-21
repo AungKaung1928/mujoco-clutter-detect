@@ -79,6 +79,13 @@ for prefix, ckpt in (("| `easy` (fixed appearance) |", "det_easy_none.pt"),
     want = [f"{m['mAP']:.4f}", f"{m['AP50']:.4f}", f"{m['AP_box']:.4f}", f"{m['AP_cylinder']:.4f}",
             f"{m['recall50_box']:.3f} / {m['recall50_cylinder']:.3f}"]
     check(prefix, got == want, f"README {got} vs JSON {want}")
+k100 = load("real_hope_k100.json")
+h100 = k100["models"]["det_hard_none.pt"]
+sentence = (f"caps recall at {hope['max_recall_at_k']:.3f} here\n({hope['images_over_k']} of {hope['images']} photos",
+            f"`hard` reaches mAP {h100['mAP']:.4f}, recall@0.5 {h100['recall50_box']:.3f} box / "
+            f"{h100['recall50_cylinder']:.3f} cylinder")
+check("top-10 cap and top-100 row", all(p in "\n".join(LINES) for p in sentence) and k100["k"] == 100,
+      f"README must contain {sentence}")
 boxes, cans = hope["objects"]["box"], hope["objects"]["cylinder"]
 # an ignored object is entered once per class, so two entries are one object
 per_image = (boxes + cans + hope["ignored_entries"] / 2) / hope["images"]

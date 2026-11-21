@@ -26,5 +26,8 @@
    "recall50_box": 0.1309,
    "recall50_cylinder": 0.0
   }
- }
+ },
+ "k": 10,
+ "images_over_k": 45,
+ "max_recall_at_k": 0.846
 }
