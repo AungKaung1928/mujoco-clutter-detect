@@ -936,6 +936,12 @@ Texture, not noise, carries most of it: Immerkær's estimator (CVIU 1996) puts t
 σ at 3.57 grey levels at most (sim 0.39), and white noise that size adds at most 20σ² = 255 to the
 Laplacian variance of 1461.5. The photometric augmentation already matches that noise (σ 3.53) and
 still stops at 306.8: matching the noise does not reach the texture.
+The background is the bigger difference, but not what defeats the model. As a diagnostic that uses
+the labels (not a fix), everything outside the labelled boxes is replaced: with the sim's mean grey,
+`hard` reaches mAP 0.0080 (class-agnostic 0.0140) and 0.393 of its confident boxes
+hit an object; blurred, 0.0057 and 0.232; as taken, 0.0063 and 0.264. With no background
+at all the model still misses the objects, so the failure is on the objects themselves: the next
+randomisation has to change how the objects look, not only what surrounds them.
 
 Global image statistics are not it either (`gap_real_hope.py`, `runs/real_hope_gap.json`,
 1 thread, 9 s). The real crops carry far more fine detail (texture or noise; the measure

@@ -143,6 +143,24 @@
      0.073,
      0.308
     ]
+   },
+   "background_masked": {
+    "background_blurred": {
+     "mAP": 0.0057,
+     "AP50": 0.0199,
+     "agnostic_mAP": 0.0078,
+     "recall50_box": 0.1491,
+     "recall50_cylinder": 0.0,
+     "hit50_above_0.3": 0.232
+    },
+    "background_grey": {
+     "mAP": 0.008,
+     "AP50": 0.0273,
+     "agnostic_mAP": 0.014,
+     "recall50_box": 0.16,
+     "recall50_cylinder": 0.0,
+     "hit50_above_0.3": 0.393
+    }
    }
   }
  }

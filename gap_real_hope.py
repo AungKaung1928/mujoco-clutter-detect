@@ -146,6 +146,26 @@ def confidence(model, sim, imgs, gts, meta, thr=0.3, n_boot=500, seed=0):
     return res
 
 
+def background_masked(model, imgs, gts, ign, sim_mean):
+    """DIAGNOSTIC, uses the labels (not a fix): is the background what fools the model?
+    Outside every labelled or ignored box the photo is blurred (sigma 4) or set to the sim
+    set's mean grey; inside, the photo is unchanged."""
+    m = np.zeros(imgs.shape[:3], bool)
+    for i, x0, y0, x1, y1 in gts[:, [0, 2, 3, 4, 5]].astype(int):
+        m[i, max(y0, 0):y1, max(x0, 0):x1] = True
+    m = m[..., None]
+    out = {}
+    for name, bg in (("background_blurred", blur(imgs, 4.0)),
+                     ("background_grey", np.full_like(imgs, int(round(float(np.mean(sim_mean))))))):
+        x = np.where(m, imgs, bg)
+        row = score(model, x, gts, ign)
+        d = predict(model, x, E.IMG_SIZE, k=10)
+        hi = d[d[:, 6] > 0.3]
+        row["hit50_above_0.3"] = round(float((best_iou(hi, gts) >= 0.5).mean()), 3)
+        out[name] = row
+    return out
+
+
 def main(root, out):
     imgs, gts, ign, meta = E.load(root)
     res = {"real": stats(imgs), "real_split": obj_bg(imgs, gts), "n_sim": N_SIM, "models": {}}
@@ -168,6 +188,8 @@ def main(root, out):
             print(regime, name, row["rows"][name])
         if regime == "hard":
             row["confidence"] = confidence(model, sim, imgs, gts, meta)
+            row["background_masked"] = background_masked(model, imgs, gts, ign, s["mean_rgb"])
+            print(row["background_masked"])
             print(row["confidence"])
         res["models"][regime] = row
     print(json.dumps({"real": res["real"], **{k: v["sim"] for k, v in res["models"].items()}}))

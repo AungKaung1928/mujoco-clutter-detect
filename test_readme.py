@@ -208,5 +208,13 @@ noise = (f"σ at {rn} grey levels at most (sim {gap['models']['hard']['sim']['no
 check("noise vs texture", all(p in text for p in noise) and 20 * rn ** 2 < gap["real"]["laplacian_var_median"] / 2,
       f"README must contain {noise}")
 
+bm = gap["models"]["hard"]["background_masked"]
+gr, bl = bm["background_grey"], bm["background_blurred"]
+raw = gap["models"]["hard"]["rows"]["raw"]
+masked = (f"`hard` reaches mAP {gr['mAP']:.4f} (class-agnostic {gr['agnostic_mAP']:.4f}) and {gr['hit50_above_0.3']:.3f} of its confident boxes",
+          f"blurred, {bl['mAP']:.4f} and {bl['hit50_above_0.3']:.3f}; as taken, {raw['mAP']:.4f} and {gap['models']['hard']['confidence']['hit50']:.3f}")
+check("background-masked diagnostic", all(p in text for p in masked) and gr["mAP"] < 0.02,
+      f"README must contain {masked}; and with no background mAP must stay near 0")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
