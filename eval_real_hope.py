@@ -123,10 +123,14 @@ def main(root, ckpts, out, k=10, boot=500):
     print(f"{len(imgs)} images, objects {n_pos}, ignored entries {int(ign.sum())}, "
           f"median object {res['object_px_median']} px at {IMG_SIZE} px")
     for path in ckpts:
-        ck = torch.load(path, map_location="cpu", weights_only=False)
-        model = D.build(ck)
-        model.load_state_dict(ck["model"])
-        dets = predict(model, imgs, IMG_SIZE, k=k)
+        if path.endswith(".onnx"):          # fp32 or INT8 graph, 1 thread, same decode as torch
+            import export_onnx as E
+            dets = E.onnx_predict(E.sess(path, 1), imgs, IMG_SIZE, k=k)
+        else:
+            ck = torch.load(path, map_location="cpu", weights_only=False)
+            model = D.build(ck)
+            model.load_state_dict(ck["model"])
+            dets = predict(model, imgs, IMG_SIZE, k=k)
         r = AP.evaluate(dets, gts, gt_ignore=ign)
         one = lambda x: np.c_[x[:, :1], np.zeros(len(x)), x[:, 2:]]   # every class -> 0
         ra = AP.evaluate(one(dets), one(gts), n_classes=1, gt_ignore=ign)
@@ -157,7 +161,7 @@ def main(root, ckpts, out, k=10, boot=500):
 if __name__ == "__main__":
     a = argparse.ArgumentParser()
     a.add_argument("--root", required=True, help="unzipped hope/val")
-    a.add_argument("--ckpt", nargs="+", default=["runs/det_easy_none.pt", "runs/det_hard_none.pt"])
+    a.add_argument("--ckpt", nargs="+", help=".pt checkpoints or .onnx graphs", default=["runs/det_easy_none.pt", "runs/det_hard_none.pt"])
     a.add_argument("--out", default="")
     a.add_argument("--boot", type=int, default=500, help="scene bootstrap draws (0 = skip; slow at --k 100)")
     a.add_argument("--k", type=int, default=10, help="detections kept per image (10 = the sim setting)")

@@ -1,0 +1,106 @@
+{
+ "images": 50,
+ "objects": {
+  "box": 275,
+  "cylinder": 310
+ },
+ "ignored_entries": 520,
+ "object_px_median": 27.9,
+ "crop_px": [
+  1080
+ ],
+ "models": {
+  "det_hard_none.pt": {
+   "mAP": 0.0063,
+   "AP50": 0.0218,
+   "AP_box": 0.0126,
+   "AP_cylinder": 0.0,
+   "recall50_box": 0.1309,
+   "recall50_cylinder": 0.0,
+   "agnostic_mAP": 0.0084,
+   "agnostic_AP50": 0.0277,
+   "agnostic_recall50": 0.0889,
+   "chance_agnostic_recall50": 0.0479,
+   "chance_agnostic_mAP": 0.0007,
+   "dets_above_0.3_by_class": {
+    "box": 353,
+    "cylinder": 14,
+    "sphere": 31
+   },
+   "ci95_agnostic_mAP_minus_chance_by_scene": [
+    -0.0002,
+    0.0183
+   ]
+  },
+  "detector.onnx": {
+   "mAP": 0.0063,
+   "AP50": 0.0218,
+   "AP_box": 0.0126,
+   "AP_cylinder": 0.0,
+   "recall50_box": 0.1309,
+   "recall50_cylinder": 0.0,
+   "agnostic_mAP": 0.0084,
+   "agnostic_AP50": 0.0277,
+   "agnostic_recall50": 0.0889,
+   "chance_agnostic_recall50": 0.0479,
+   "chance_agnostic_mAP": 0.0007,
+   "dets_above_0.3_by_class": {
+    "box": 353,
+    "cylinder": 14,
+    "sphere": 31
+   },
+   "ci95_agnostic_mAP_minus_chance_by_scene": [
+    -0.0002,
+    0.0183
+   ]
+  },
+  "detector_int8_minmax.onnx": {
+   "mAP": 0.0061,
+   "AP50": 0.0205,
+   "AP_box": 0.0122,
+   "AP_cylinder": 0.0,
+   "recall50_box": 0.1236,
+   "recall50_cylinder": 0.0,
+   "agnostic_mAP": 0.0083,
+   "agnostic_AP50": 0.0267,
+   "agnostic_recall50": 0.0855,
+   "chance_agnostic_recall50": 0.0462,
+   "chance_agnostic_mAP": 0.0007,
+   "dets_above_0.3_by_class": {
+    "box": 370,
+    "cylinder": 15,
+    "sphere": 33
+   },
+   "ci95_agnostic_mAP_minus_chance_by_scene": [
+    -0.0,
+    0.0174
+   ]
+  },
+  "detector_int8_dynamic.onnx": {
+   "mAP": 0.0059,
+   "AP50": 0.0198,
+   "AP_box": 0.0118,
+   "AP_cylinder": 0.0,
+   "recall50_box": 0.1236,
+   "recall50_cylinder": 0.0,
+   "agnostic_mAP": 0.008,
+   "agnostic_AP50": 0.0262,
+   "agnostic_recall50": 0.0838,
+   "chance_agnostic_recall50": 0.0462,
+   "chance_agnostic_mAP": 0.0007,
+   "dets_above_0.3_by_class": {
+    "box": 363,
+    "cylinder": 15,
+    "sphere": 29
+   },
+   "ci95_agnostic_mAP_minus_chance_by_scene": [
+    -0.0002,
+    0.0176
+   ]
+  }
+ },
+ "chance_pairs_same_scene": 0,
+ "k": 10,
+ "images_over_k": 45,
+ "max_recall_at_k": 0.846
+}

@@ -113,6 +113,12 @@ sentence = (f"caps recall at {hope['max_recall_at_k']:.3f} here\n({hope['images_
             f"{h100['recall50_cylinder']:.3f} cylinder")
 check("top-10 cap and top-100 row", all(p in "\n".join(LINES) for p in sentence) and k100["k"] == 100,
       f"README must contain {sentence}")
+onx = load("real_hope_onnx.json")["models"]
+m = lambda n: f"{onx[n]['mAP']:.4f}"
+sentence = (f"(mAP {m('detector.onnx')})", f"static INT8 (calibrated on sim images only) gives {m('detector_int8_minmax.onnx')}",
+            f"dynamic INT8 {m('detector_int8_dynamic.onnx')}.")
+check("real-photo ONNX rows", all(p in " ".join(" ".join(LINES).split()) for p in sentence)
+      and onx["detector.onnx"] == {**onx["det_hard_none.pt"]}, f"README must contain {sentence}; fp32 ONNX row must equal torch row")
 h10 = hope["models"]["det_hard_none.pt"]
 agn = (f"`hard` gets mAP {h10['agnostic_mAP']:.4f} ({h10['mAP']:.4f} per class) "
        f"and recall@0.5 {h10['agnostic_recall50']:.3f}")

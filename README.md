@@ -913,6 +913,12 @@ recall@0.5 0.048 (top 10) and 0.108 (top 100), about half of the real values. Ra
 looks better, class-agnostic mAP 0.0084 against 0.0007 by chance, but the 50 photos come from
 10 scenes: resampling whole scenes puts the difference between -0.0002 and 0.0183 (95 %), so
 even that is not shown to beat chance.
+The edge graphs behave the same on the photos (`--ckpt runs/detector.onnx
+runs/detector_int8_minmax.onnx runs/detector_int8_dynamic.onnx`, 1 thread,
+`runs/real_hope_onnx.json`): fp32 ONNX reproduces every field of the PyTorch row
+(mAP 0.0063), static INT8 (calibrated on sim images only) gives 0.0061 and dynamic INT8 0.0059.
+INT8 moves real-photo mAP by at most 0.0004, far inside the scene-resampling spread above;
+quantisation neither causes nor fixes the failure.
 **Negative result: neither model transfers.** Randomisation helps (mAP 31×, box recall
 2% → 13%) but from almost nothing to almost nothing. Diagnostics, not in the table:
 class-agnostic recall@0.5 is 0.089 for `hard`, so localisation fails too, not only the
