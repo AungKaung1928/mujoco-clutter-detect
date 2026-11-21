@@ -94,6 +94,9 @@ c100 = k100["models"]["det_hard_none.pt"]
 chance = (f"recall@0.5 {h10['chance_agnostic_recall50']:.3f} (top 10) and {c100['chance_agnostic_recall50']:.3f} (top 100)",
           f"class-agnostic mAP {h10['agnostic_mAP']:.4f} against {h10['chance_agnostic_mAP']:.4f} by chance")
 hc = h10["dets_above_0.3_by_class"]
+check("top-100 vs top-10 mAP under 0.001",
+      all(abs(k100["models"][m]["mAP"] - hope["models"][m]["mAP"]) < 0.001 for m in hope["models"])
+      and "keeping 100 peaks instead of 10 changes mAP by under 0.001" in " ".join(LINES), "")
 claim = f"calls {hc['box']} of {sum(hc.values())} detections `box`"
 check("score > 0.3 class counts", claim in " ".join(LINES), f"README must contain {claim!r}")
 lo, hi = h10["ci95_agnostic_mAP_minus_chance_by_scene"]

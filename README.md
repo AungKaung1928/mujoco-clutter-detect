@@ -914,8 +914,8 @@ even that is not shown to beat chance.
 **Negative result: neither model transfers.** Randomisation helps (mAP 31×, box recall
 2% → 13%) but from almost nothing to almost nothing. Diagnostics, not in the table:
 class-agnostic recall@0.5 is 0.089 for `hard`, so localisation fails too, not only the
-class; keeping 30 peaks instead of 10 changes mAP by under 0.001, so the per-image cap
-is not the cause; above score 0.3 the `hard` model calls 353 of 398 detections `box`,
+class; keeping 100 peaks instead of 10 changes mAP by under 0.001 (`runs/real_hope_k100.json`),
+so the per-image cap is not the cause; above score 0.3 the `hard` model calls 353 of 398 detections `box`,
 cans included. The photos have printed labels, objects piled in a bag and a sofa behind
 them; the randomiser varies only hue, table and light of flat-coloured primitives.
 Which of those differences costs most is not measured. Next lever to test: textured
