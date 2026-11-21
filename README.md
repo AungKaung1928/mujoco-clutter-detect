@@ -938,7 +938,7 @@ so the per-image cap is not the cause; above score 0.3 the `hard` model calls 35
 cans included. The photos have printed labels, objects piled in a bag and a sofa behind
 them; the randomiser varies only hue, table and light of flat-coloured primitives.
 Which of those differences costs most is measured below: not the background, largely the
-printed texture, the piles for the rest. The lever: textured objects and distractors in the
+printed texture; the rest (piles, shapes) is not separated. The lever: textured objects and distractors in the
 sim, then re-measure here. Checked before any training
 (`render_detail.py`, `runs/render_detail.json`, 48 renders each, 3 s): the texture regime as
 coded does not carry the photos' fine detail. Median Laplacian variance is 98.6 for `tex` and
