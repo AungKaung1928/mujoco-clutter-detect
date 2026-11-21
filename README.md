@@ -844,8 +844,11 @@ cores the box was given.
 4. **Pruning is the wrong tool for this network.** 25 % of channels = 28 % of
    MACs = 20 % of latency (2.84 ms) for −0.019 mAP after three epochs; 50 % =
    53 % of MACs = 32 % of latency (2.42 ms) for −0.065. Latency falls slower
-   than arithmetic because narrow convolutions run the kernels less efficiently
-   and per-operator overhead does not shrink. Before fine-tuning the pruned
+   than arithmetic because the narrow convolutions run the kernels less
+   efficiently. Profiled on one thread (`edge/profile_ops.py` → `runs/op_profile.json`),
+   time outside the kernels is 0.04 ms, ONNX Runtime pads the pruned channel
+   counts (+5 % executed MACs) and the convolutions run 17 % slower per
+   MAC; per-operator overhead is not the cause. Before fine-tuning the pruned
    networks scored 0.220 and 0.000: the γ ranking was never trained toward
    sparsity, so what it removed was in use. Pruned 50 % + INT8 reaches 1.25 ms,
    under 10 % faster than static INT8 alone, for seven points of mAP. Decision:

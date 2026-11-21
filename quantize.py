@@ -3,8 +3,10 @@ costs in detections rather than in tensor error.
 
 Static, not dynamic, for a convolutional network. Dynamic quantization stores
 INT8 weights and computes activation scales at run time from each tensor's
-observed range; on a CNN that leaves the convolutions running in fp32 with an
-extra quantize step in front of each one, so it saves bytes and buys no speed.
+observed range; ONNX Runtime then runs each convolution as ConvInteger with a
+DynamicQuantizeLinear in front and fp32 rescale ops behind it (runs/op_profile.json).
+It was expected to buy no speed; measured, it halves one-thread time but gains
+almost nothing from more threads (README step 6, edge/NOTES.md).
 Static quantization fixes activation scales from a calibration pass, so the
 runtime can execute the whole conv chain in INT8 with fused requantization.
 Both are measured here; the dynamic row exists to show the difference, not as

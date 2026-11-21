@@ -247,5 +247,16 @@ shift = (f"the `hard` model scores class-agnostic mAP {ts['hard']['agnostic_mAP'
 check("texture shift in sim", all(p in text for p in shift) and abs(ts["hard"]["agnostic_mAP"] - 0.91) < 0.02
       and ts["texl"]["agnostic_mAP"] < 0.2, f"README must contain {shift}")
 
+print("Pruning cause (runs/op_profile.json, runs/prune_50.json)")
+op = load("op_profile.json")["graphs"]
+f32, p50, nominal = op["detector.onnx"], op["detector_pruned_50.onnx"], load("prune_50.json")["macs"]
+conv_ms = lambda r: sum(v for k, v in r["by_op_ms"].items() if k in ("Conv", "FusedConv"))
+outside = f32["run_ms_median"] - f32["kernel_ms_mean"]
+pad = 100 * (p50["conv_macs_executed"] - nominal) / nominal
+slow = 100 * (1 - (p50["conv_macs_executed"] / conv_ms(p50)) / (f32["conv_macs_executed"] / conv_ms(f32)))
+claims = (f"time outside the kernels is {outside:.2f} ms", f"(+{pad:.0f} % executed MACs)",
+          f"run {slow:.0f} % slower per MAC")
+check("pruning cause sentence", all(c in " ".join(" ".join(LINES).split()) for c in claims), f"README must contain {claims}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
