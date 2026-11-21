@@ -54,3 +54,18 @@ jobs:
           python-version: "3.12"
       - run: pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple torch onnxruntime==1.30.0 onnx opencv-python-headless numpy
       - run: cpp/ci.sh
+
+  render:
+    # test_distractors.py renders a hand-built texd scene (occlusion labelling); software EGL (Mesa).
+    runs-on: ubuntu-latest
+    env:
+      MUJOCO_GL: egl
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1-mesa-dri libgles2
+      - run: pip install mujoco==3.12.0 numpy
+      - name: distractor occlusion labelling (renders)
+        run: python test_distractors.py
