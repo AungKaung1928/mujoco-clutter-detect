@@ -143,6 +143,8 @@ def main(root, ckpts, out, k=10, boot=500):
                "agnostic_recall50": round(float(ra["recall"][0, 0]), 4),
                "chance_agnostic_recall50": round(float(rc["recall"][0, 0]), 4),
                "chance_agnostic_mAP": round(float(rc["mAP"]), 4),
+               "dets_above_0.3_by_class": {c: int(((dets[:, 6] > 0.3) & (dets[:, 1] == i)).sum())
+                                           for c, i in C.CLS_ID.items()},
                "ci95_agnostic_mAP_minus_chance_by_scene":
                    scene_bootstrap(dets, moved, gts, ign, meta, boot) if boot else None}
         res["models"][os.path.basename(path)] = row

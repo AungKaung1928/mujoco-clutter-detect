@@ -22,6 +22,11 @@
    "agnostic_recall50": 0.1094,
    "chance_agnostic_recall50": 0.1043,
    "chance_agnostic_mAP": 0.0005,
+   "dets_above_0.3_by_class": {
+    "box": 184,
+    "cylinder": 94,
+    "sphere": 15
+   },
    "ci95_agnostic_mAP_minus_chance_by_scene": null
   },
   "det_hard_none.pt": {
@@ -36,6 +41,11 @@
    "agnostic_recall50": 0.2205,
    "chance_agnostic_recall50": 0.1077,
    "chance_agnostic_mAP": 0.001,
+   "dets_above_0.3_by_class": {
+    "box": 380,
+    "cylinder": 15,
+    "sphere": 32
+   },
    "ci95_agnostic_mAP_minus_chance_by_scene": null
   }
  },

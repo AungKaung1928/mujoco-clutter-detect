@@ -93,6 +93,9 @@ check("class-agnostic row", agn in "\n".join(LINES), f"README must contain {agn!
 c100 = k100["models"]["det_hard_none.pt"]
 chance = (f"recall@0.5 {h10['chance_agnostic_recall50']:.3f} (top 10) and {c100['chance_agnostic_recall50']:.3f} (top 100)",
           f"class-agnostic mAP {h10['agnostic_mAP']:.4f} against {h10['chance_agnostic_mAP']:.4f} by chance")
+hc = h10["dets_above_0.3_by_class"]
+claim = f"calls {hc['box']} of {sum(hc.values())} detections `box`"
+check("score > 0.3 class counts", claim in " ".join(LINES), f"README must contain {claim!r}")
 lo, hi = h10["ci95_agnostic_mAP_minus_chance_by_scene"]
 check("scene bootstrap interval", lo < 0 < hi and f"difference between {lo:.4f} and {hi:.4f} (95 %)"
       in " ".join(LINES), f"README must give [{lo}, {hi}] and the interval must contain 0")
