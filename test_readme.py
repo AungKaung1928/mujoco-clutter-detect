@@ -79,6 +79,23 @@ claim = (f"drops {en['mAP']:.4f} → {en['cross']['mAP']:.4f} under appearance s
          f"only {hn['mAP'] - hn['cross']['mAP']:.3f} going back to `easy`")
 check("ablation key point", claim in " ".join(LINES), f"README must contain {claim!r}")
 
+print("key points: classical vs detector, pruning")
+det, cv = load("det_hard_none.json"), load("baseline_hard.json")["bgsub+ws"]
+spread = lambda apc: max(apc) - min(apc)
+mmq, p25, p50 = load("quant_minmax.json"), load("prune_25.json"), load("prune_50.json")
+claim = (f"per-class spread falls {spread(cv['ap_per_class']):.3f} → {spread(det['ap_per_class']):.3f} and recall on "
+         f"objects under half visible goes {cv['vis_recall']['0.0-0.5']:.3f} → {det['vis_recall']['0.0-0.5']:.3f} "
+         f"(n = {mmq['score']['vis_n']['0.0-0.5']})")
+check("classical vs detector key point", claim in " ".join(LINES), f"README must contain {claim!r}")
+fp32 = mmq["ref"]["latency_ms"]["1t"]
+cut = [round(100 * (1 - p["latency_ms"]["onnxrt_1t"] / fp32)) for p in (p25, p50)]
+both = p50["int8"]["latency_ms"]["onnxrt_1t"]
+claim = (f"25 / 50 % of channels buy {cut[0]} / {cut[1]} % less latency "
+         f"({p25['latency_ms']['onnxrt_1t']:.2f} / {p50['latency_ms']['onnxrt_1t']:.2f} ms) for "
+         f"−{p25['mAP_drop']:.3f} / −{p50['mAP_drop']:.3f} mAP after fine-tuning; pruned 50 % + INT8 reaches {both:.2f} ms")
+check("pruning key point", claim in " ".join(LINES) and both > 0.9 * mmq["latency_ms"]["1t"],
+      f"README must contain {claim!r}; and 50 % + INT8 under 10 % faster than INT8")
+
 print("Step 7, real photos (runs/real_hope.json)")
 hope = load("real_hope.json")
 for prefix, ckpt in (("| `easy` (fixed appearance) |", "det_easy_none.pt"),
