@@ -921,6 +921,23 @@ them; the randomiser varies only hue, table and light of flat-coloured primitive
 Which of those differences costs most is not measured. Next lever to test: textured
 objects and distractors in the sim, then re-measure here.
 
+Global image statistics are not it either (`gap_real_hope.py`, `runs/real_hope_gap.json`,
+1 thread, 9 s). The real crops are far sharper, median Laplacian variance 1461.5 against
+83.8 for the `hard` sim set, and more saturated (86.2 against 34.9). Moving the photos
+toward the sim at test time, calibrated on image statistics only (no labels, no mAP):
+
+| `hard` on the real photos | mAP@[.5:.95] | class-agnostic mAP | recall@0.5 box / cyl |
+|---|---|---|---|
+| as taken | 0.0063 | 0.0084 | 0.131 / 0.000 |
+| colour matched (per-channel mean/std of the sim set) | 0.0036 | 0.0040 | 0.105 / 0.010 |
+| blurred (σ 1.0 px, Laplacian variance 84.1) | 0.0073 | 0.0108 | 0.131 / 0.003 |
+| blurred, then colour matched | 0.0067 | 0.0085 | 0.109 / 0.003 |
+
+Colour matching hurts; blur moves mAP by 0.0010, smaller than the scene-level spread above.
+Removing the texture the sim never had does not make the objects findable, so the gap is in
+the objects' appearance and the clutter, not in a global colour or sharpness shift a
+pre-processing step could undo.
+
 ## Block 2 — closed
 
 What was measured, in one paragraph. On a tilted-camera tabletop with exact

@@ -140,5 +140,25 @@ check("objects scored and per image",
       f"{boxes} boxes and {cans} cans scored, {per_image:.1f} objects per image" in text)
 check("median object size", f"median\n{hope['object_px_median']} px at 192 px" in text)
 
+print("Step 7, test-time corrections (runs/real_hope_gap.json)")
+gap = load("real_hope_gap.json")
+gh = gap["models"]["hard"]
+check("gap raw row reproduces real_hope.json",
+      [gh["rows"]["raw"][k] for k in ("mAP", "agnostic_mAP")] == [h10["mAP"], h10["agnostic_mAP"]])
+for name, label in (("raw", "as taken"), ("colour", "colour matched (per-channel mean/std of the sim set)"),
+                    ("blur", f"blurred (σ {gh['blur_sigma']} px, Laplacian variance {gh['blurred_laplacian_var_median']})"),
+                    ("both", "blurred, then colour matched")):
+    r = gh["rows"][name]
+    row = (f"| {label} | {r['mAP']:.4f} | {r['agnostic_mAP']:.4f} | "
+           f"{r['recall50_box']:.3f} / {r['recall50_cylinder']:.3f} |")
+    check(f"gap row {name}", row in LINES, f"README must contain {row!r}")
+stats_claim = (f"median Laplacian variance {gap['real']['laplacian_var_median']} against\n"
+               f"{gh['sim']['laplacian_var_median']} for the `hard` sim set, and more saturated "
+               f"({gap['real']['saturation_mean']} against {gh['sim']['saturation_mean']})")
+check("gap image statistics", stats_claim in text, f"README must contain {stats_claim!r}")
+d = gh["rows"]["blur"]["mAP"] - gh["rows"]["raw"]["mAP"]
+check("blur moves mAP by", f"blur moves mAP by {d:.4f}" in " ".join(LINES)
+      and gh["rows"]["colour"]["mAP"] < gh["rows"]["raw"]["mAP"], f"{d:.4f}; colour must be below raw")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)

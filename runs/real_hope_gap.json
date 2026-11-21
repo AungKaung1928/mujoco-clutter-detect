@@ -1,0 +1,115 @@
+{
+ "real": {
+  "mean_rgb": [
+   113.3,
+   104.3,
+   96.4
+  ],
+  "std_rgb": [
+   72.9,
+   71.0,
+   73.2
+  ],
+  "saturation_mean": 86.2,
+  "laplacian_var_median": 1461.5
+ },
+ "n_sim": 500,
+ "models": {
+  "easy": {
+   "sim": {
+    "mean_rgb": [
+     195.8,
+     194.9,
+     186.9
+    ],
+    "std_rgb": [
+     50.7,
+     52.1,
+     50.7
+    ],
+    "saturation_mean": 27.9,
+    "laplacian_var_median": 511.4
+   },
+   "blur_sigma": 0.5,
+   "blurred_laplacian_var_median": 578.0,
+   "rows": {
+    "raw": {
+     "mAP": 0.0002,
+     "AP50": 0.0018,
+     "agnostic_mAP": 0.0006,
+     "recall50_box": 0.0182,
+     "recall50_cylinder": 0.0226
+    },
+    "colour": {
+     "mAP": 0.0,
+     "AP50": 0.0,
+     "agnostic_mAP": 0.0,
+     "recall50_box": 0.0036,
+     "recall50_cylinder": 0.0
+    },
+    "blur": {
+     "mAP": 0.0002,
+     "AP50": 0.0016,
+     "agnostic_mAP": 0.001,
+     "recall50_box": 0.0182,
+     "recall50_cylinder": 0.0194
+    },
+    "both": {
+     "mAP": 0.0,
+     "AP50": 0.0,
+     "agnostic_mAP": 0.0,
+     "recall50_box": 0.0,
+     "recall50_cylinder": 0.0
+    }
+   }
+  },
+  "hard": {
+   "sim": {
+    "mean_rgb": [
+     118.9,
+     118.7,
+     119.0
+    ],
+    "std_rgb": [
+     52.0,
+     52.0,
+     52.2
+    ],
+    "saturation_mean": 34.9,
+    "laplacian_var_median": 83.8
+   },
+   "blur_sigma": 1.0,
+   "blurred_laplacian_var_median": 84.1,
+   "rows": {
+    "raw": {
+     "mAP": 0.0063,
+     "AP50": 0.0218,
+     "agnostic_mAP": 0.0084,
+     "recall50_box": 0.1309,
+     "recall50_cylinder": 0.0
+    },
+    "colour": {
+     "mAP": 0.0036,
+     "AP50": 0.0174,
+     "agnostic_mAP": 0.004,
+     "recall50_box": 0.1055,
+     "recall50_cylinder": 0.0097
+    },
+    "blur": {
+     "mAP": 0.0073,
+     "AP50": 0.0224,
+     "agnostic_mAP": 0.0108,
+     "recall50_box": 0.1309,
+     "recall50_cylinder": 0.0032
+    },
+    "both": {
+     "mAP": 0.0067,
+     "AP50": 0.0218,
+     "agnostic_mAP": 0.0085,
+     "recall50_box": 0.1091,
+     "recall50_cylinder": 0.0032
+    }
+   }
+  }
+ }
+}

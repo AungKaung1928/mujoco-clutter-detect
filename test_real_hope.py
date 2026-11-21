@@ -58,6 +58,19 @@ check("ignored entries (2 objects x 2 classes)", int(ign.sum()), 4)
 check("ignored entries cover both classes", sorted(gts[ign][:, 1].tolist()), [0, 0, 1, 1])
 check("box coordinates in crop pixels", gts[0, 2:], [100 * s, 100 * s, 208 * s, 154 * s])
 
+import gap_real_hope as G
+print("\ngap_real_hope test-time corrections")
+rng = np.random.default_rng(0)
+x = rng.integers(0, 256, (2, 32, 32, 3)).astype(np.uint8)
+y = G.match_colour(x, [120, 110, 100], [40, 45, 50]).astype(np.float64)
+check("colour match: per-image channel means", y.mean(axis=(1, 2)), [[120, 110, 100]] * 2, tol=0.6)
+check("colour match: per-image channel stds", y.std(axis=(1, 2)), [[40, 45, 50]] * 2, tol=0.6)
+sharp = np.zeros((1, 64, 64, 3), np.uint8)
+sharp[:, ::2] = 255                                   # stripes: huge Laplacian variance
+check("blur lowers Laplacian variance", bool(G.lap_var(G.blur(sharp, 1.0))[0] < 0.1 * G.lap_var(sharp)[0]), True)
+check("sigma pick: target huge -> smallest sigma", G.pick_sigma(x, 1e9), G.SIGMAS[0])
+check("sigma pick: target ~0 -> largest sigma", G.pick_sigma(x, 1e-6), G.SIGMAS[-1])
+
 if len(sys.argv) > 1:
     import ap as AP
     print("\nreal HOPE labels fed back as detections")
