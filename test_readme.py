@@ -69,6 +69,16 @@ print("claims next to the table")
 mm_line = next(l for l in LINES if l.startswith("| INT8 static, MinMax"))
 check("MinMax = Entropy (same SHA-256)", mm["sha256"] == ent["sha256"] and "same SHA-256" in mm_line)
 
+print("key point: appearance randomisation vs augmentation (runs/ablation.json)")
+ab = load("ablation.json")
+en, ep, hn, hp = ab["easy/none"], ab["easy/photo"], ab["hard/none"], ab["hard/photo"]
+claim = (f"drops {en['mAP']:.4f} → {en['cross']['mAP']:.4f} under appearance shift (detection rate "
+         f"{en['cross']['det_rate']:.2f}); photometric augmentation recovers only to {ep['cross']['mAP']:.4f}; "
+         f"on top of the randomiser it adds {hp['mAP'] - hn['mAP']:+.4f} for "
+         f"{100 * (hp['train_s'] / hn['train_s'] - 1):.0f} % more training time, and the randomised model loses "
+         f"only {hn['mAP'] - hn['cross']['mAP']:.3f} going back to `easy`")
+check("ablation key point", claim in " ".join(LINES), f"README must contain {claim!r}")
+
 print("Step 7, real photos (runs/real_hope.json)")
 hope = load("real_hope.json")
 for prefix, ckpt in (("| `easy` (fixed appearance) |", "det_easy_none.pt"),
