@@ -98,6 +98,33 @@ def test_offset_is_needed():
     print(f"    offset head worth {e2:.2f} px of centre error on this box")
 
 
+
+class _Shift:
+    """rng stand-in for train_det.geometric: no flip, shift (dx, dy)."""
+    def __init__(self, dx, dy):
+        self.d = [dx, dy]
+
+    def random(self):
+        return 0.9
+
+    def integers(self, lo, hi):
+        return self.d.pop(0)
+
+
+def test_geometric_clips_and_drops():
+    """A box pushed mostly out of frame is dropped; one that stays mostly inside
+    is kept clipped to the frame. (np.clip with out=b[:, [1, 3]] wrote into a
+    fancy-index copy, so neither happened.)"""
+    import train_det as T
+    x = np.zeros((192, 192, 3), np.float32)
+    b = np.array([[0, 2, 50, 22, 70],          # 20 px wide, shifted 14 left: 6 px stay
+                  [1, 10, 100, 40, 130],       # 30 px wide: 26 px stay -> kept, clipped
+                  [2, 100, 100, 130, 130]], np.float32)
+    _, out = T.geometric(x, b, _Shift(-14, 0), 192)
+    assert out[:, 0].tolist() == [1, 2], out
+    assert out[0, 1] == 0 and out[0, 3] == 26, out
+    assert (out[:, 1:5] >= 0).all() and (out[:, 1:5] <= 192).all()
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for f in fns:

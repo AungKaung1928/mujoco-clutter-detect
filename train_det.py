@@ -79,8 +79,7 @@ def geometric(x, boxes, rng, size):
     b[:, 1] += dx; b[:, 3] += dx
     b[:, 2] += dy; b[:, 4] += dy
     a0 = (b[:, 3] - b[:, 1]) * (b[:, 4] - b[:, 2])
-    np.clip(b[:, [1, 3]], 0, size, out=b[:, [1, 3]])
-    np.clip(b[:, [2, 4]], 0, size, out=b[:, [2, 4]])
+    b[:, 1:5] = np.clip(b[:, 1:5], 0, size)
     a1 = (b[:, 3] - b[:, 1]) * (b[:, 4] - b[:, 2])
     keep = (a1 > 0.5 * np.maximum(a0, 1e-6)) & (b[:, 3] - b[:, 1] > 4) & (b[:, 4] - b[:, 2] > 4)
     return np.ascontiguousarray(x), b[keep]
