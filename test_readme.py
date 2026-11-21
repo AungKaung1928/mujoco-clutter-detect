@@ -167,5 +167,15 @@ conf = (f"median {cf['real']['top_score_median']:.3f} (", f"{cf['sim']['top_scor
         f"against {cf['chance_hit50']:.3f} for the same boxes", f"{lo:.3f} to {hi:.3f} by scene bootstrap")
 check("confident-detection hit rate", all(p in text for p in conf) and lo > 0, f"README must contain {conf}; CI above 0")
 
+print("Step 7, render detail check (runs/render_detail.json)")
+rd = load("render_detail.json")
+st = {k: v["laplacian_var_median"] for k, v in rd["sets"].items()}
+claim = (f"Median Laplacian variance is {st['tex']} for `tex` and\n{st['texd']} for `texd` against "
+         f"{rd['real']['laplacian_var_median']} on the photos (`hard` {st['hard']})",
+         f"(pixel noise) reaches {st['hard_aug_photo']}", f"overshoots\n({rd['sets']['tex']['saturation_mean']} against "
+         f"{rd['real']['saturation_mean']})")
+check("render detail check", all(p in text for p in claim) and rd["real"] == gap["real"]
+      and max(st.values()) < rd["real"]["laplacian_var_median"] / 2, f"README must contain {claim}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
