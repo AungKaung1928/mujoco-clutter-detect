@@ -76,8 +76,48 @@ def score(model, imgs, gts, ign, k=10):
             "recall50_cylinder": round(float(r["recall"][0, C.CLS_ID["cylinder"]]), 4)}
 
 
+def best_iou(dets, gts):
+    """Per detection: highest IoU with any labelled or ignored object in its image."""
+    out = np.zeros(len(dets))
+    for j, r in enumerate(dets):
+        g = gts[gts[:, 0] == r[0], 2:6]
+        if len(g):
+            w = np.clip(np.minimum(r[4], g[:, 2]) - np.maximum(r[2], g[:, 0]), 0, None)
+            h = np.clip(np.minimum(r[5], g[:, 3]) - np.maximum(r[3], g[:, 1]), 0, None)
+            inter = w * h
+            out[j] = (inter / ((r[4] - r[2]) * (r[5] - r[3]) + (g[:, 2] - g[:, 0]) * (g[:, 3] - g[:, 1]) - inter)).max()
+    return out
+
+
+def confidence(model, sim, imgs, gts, meta, thr=0.3, n_boot=500, seed=0):
+    """Is the model silent on the photos or confidently wrong? Score and size of its
+    detections, and how many above thr sit on an object (IoU >= 0.5) against the same
+    boxes on a photo of another scene (i -> i + n/2), with a scene-level bootstrap."""
+    res = {"thr": thr}
+    for name, x in (("sim", sim), ("real", imgs)):
+        d = predict(model, x, E.IMG_SIZE, k=10)
+        top = [d[d[:, 0] == i, 6].max() if (d[:, 0] == i).any() else 0.0 for i in range(len(x))]
+        hi = d[d[:, 6] > thr]
+        res[name] = {"top_score_median": round(float(np.median(top)), 3),
+                     "dets_above_thr_per_image": round(len(hi) / len(x), 2),
+                     "det_side_px_median": round(float(np.median(np.sqrt((hi[:, 4] - hi[:, 2]) * (hi[:, 5] - hi[:, 3])))), 1)}
+    moved = hi.copy()
+    moved[:, 0] = (moved[:, 0] + len(imgs) // 2) % len(imgs)
+    hit, chance = best_iou(hi, gts) >= 0.5, best_iou(moved, gts) >= 0.5
+    scene = np.array([meta[int(i)]["scene"] for i in hi[:, 0]])
+    names = sorted(set(scene))
+    rng = np.random.default_rng(seed)
+    diffs = []
+    for _ in range(n_boot):
+        m = np.concatenate([np.flatnonzero(scene == names[k]) for k in rng.integers(0, len(names), len(names))])
+        diffs.append(hit[m].mean() - chance[m].mean())
+    res.update(hit50=round(float(hit.mean()), 3), chance_hit50=round(float(chance.mean()), 3),
+               ci95_hit_minus_chance_by_scene=[round(float(v), 3) for v in np.quantile(diffs, [0.025, 0.975])])
+    return res
+
+
 def main(root, out):
-    imgs, gts, ign, _ = E.load(root)
+    imgs, gts, ign, meta = E.load(root)
     res = {"real": stats(imgs), "n_sim": N_SIM, "models": {}}
     for regime in ("easy", "hard"):
         sim = np.asarray(np.load(f"data/{regime}/val_images.npy", mmap_mode="r")[:N_SIM])
@@ -95,6 +135,9 @@ def main(root, out):
         for name, x in variants.items():
             row["rows"][name] = score(model, x, gts, ign)
             print(regime, name, row["rows"][name])
+        if regime == "hard":
+            row["confidence"] = confidence(model, sim, imgs, gts, meta)
+            print(row["confidence"])
         res["models"][regime] = row
     print(json.dumps({"real": res["real"], **{k: v["sim"] for k, v in res["models"].items()}}))
     if out:

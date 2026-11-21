@@ -109,6 +109,25 @@
      "recall50_box": 0.1091,
      "recall50_cylinder": 0.0032
     }
+   },
+   "confidence": {
+    "thr": 0.3,
+    "sim": {
+     "top_score_median": 0.99,
+     "dets_above_thr_per_image": 4.53,
+     "det_side_px_median": 28.5
+    },
+    "real": {
+     "top_score_median": 0.813,
+     "dets_above_thr_per_image": 7.96,
+     "det_side_px_median": 26.7
+    },
+    "hit50": 0.264,
+    "chance_hit50": 0.078,
+    "ci95_hit_minus_chance_by_scene": [
+     0.073,
+     0.308
+    ]
    }
   }
  }

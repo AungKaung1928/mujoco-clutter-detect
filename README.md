@@ -938,6 +938,13 @@ Removing the texture the sim never had does not make the objects findable, so th
 the objects' appearance and the clutter, not in a global colour or sharpness shift a
 pre-processing step could undo.
 
+It is not silent on the photos either. Its top score per photo has median 0.813 (0.990 on the
+sim set), it keeps 7.96 detections above 0.3 per photo (4.53 in sim) at a median side of
+26.7 px, the objects' own size, and 0.264 of those sit on a labelled or ignored object at
+IoU ≥ 0.5, against 0.078 for the same boxes on a photo of another scene (difference
+0.073 to 0.308 by scene bootstrap, 95 %). Above chance, but three of four confident boxes
+match no object at IoU 0.5: confident, right-sized, and mostly in the wrong place.
+
 ## Block 2 — closed
 
 What was measured, in one paragraph. On a tilted-camera tabletop with exact

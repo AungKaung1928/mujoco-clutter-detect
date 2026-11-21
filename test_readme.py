@@ -159,6 +159,13 @@ check("gap image statistics", stats_claim in text, f"README must contain {stats_
 d = gh["rows"]["blur"]["mAP"] - gh["rows"]["raw"]["mAP"]
 check("blur moves mAP by", f"blur moves mAP by {d:.4f}" in " ".join(LINES)
       and gh["rows"]["colour"]["mAP"] < gh["rows"]["raw"]["mAP"], f"{d:.4f}; colour must be below raw")
+cf = gh["confidence"]
+lo, hi = cf["ci95_hit_minus_chance_by_scene"]
+conf = (f"median {cf['real']['top_score_median']:.3f} (", f"{cf['sim']['top_score_median']:.3f} on the\nsim set), it keeps "
+        f"{cf['real']['dets_above_thr_per_image']:.2f} detections above {cf['thr']} per photo ({cf['sim']['dets_above_thr_per_image']:.2f} in sim) "
+        f"at a median side of\n{cf['real']['det_side_px_median']} px", f"{cf['hit50']:.3f} of those sit",
+        f"against {cf['chance_hit50']:.3f} for the same boxes", f"{lo:.3f} to {hi:.3f} by scene bootstrap")
+check("confident-detection hit rate", all(p in text for p in conf) and lo > 0, f"README must contain {conf}; CI above 0")
 
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)

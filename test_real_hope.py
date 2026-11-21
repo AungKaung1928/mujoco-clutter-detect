@@ -70,6 +70,10 @@ sharp[:, ::2] = 255                                   # stripes: huge Laplacian 
 check("blur lowers Laplacian variance", bool(G.lap_var(G.blur(sharp, 1.0))[0] < 0.1 * G.lap_var(sharp)[0]), True)
 check("sigma pick: target huge -> smallest sigma", G.pick_sigma(x, 1e9), G.SIGMAS[0])
 check("sigma pick: target ~0 -> largest sigma", G.pick_sigma(x, 1e-6), G.SIGMAS[-1])
+g = np.array([[0, 0, 0, 0, 10, 10], [0, 1, 20, 20, 30, 30], [1, 0, 0, 0, 10, 10]], float)
+d = np.array([[0, 0, 0, 0, 10, 5, .9], [0, 0, 20, 20, 30, 30, .9], [2, 0, 0, 0, 10, 10, .9]], float)
+# half-overlap 50/100 = 0.5; exact match 1.0; image 2 has no objects -> 0
+check("best IoU per detection, own image only", G.best_iou(d, g), [0.5, 1.0, 0.0])
 
 if len(sys.argv) > 1:
     import ap as AP
