@@ -18,3 +18,7 @@ runs/*
 runs/*_smoke*
 # the pre-fine-tune pruned graphs and the pre-processed fp32 graph are intermediates, not plotted
 runs/detector_pruned_*_pre.onnx
+# cpp/bench.py scratch and the local build
+cpp/images.u8
+cpp/ref.f32
+cpp/detect_ort

@@ -34,3 +34,17 @@ jobs:
         run: python test_backbone.py
       - name: README headline table vs runs/*.json
         run: python test_readme.py
+
+  cpp-ort:
+    # C++ detector (cpp/detect_ort.cpp) against ONNX Runtime 1.30.0 must match Python ORT +
+    # detector.decode bit for bit (cpp/ci.sh). Python 3.12: onnxruntime 1.30.0 has no 3.10 wheel.
+    runs-on: ubuntu-latest
+    env:
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple torch onnxruntime==1.30.0 onnx opencv-python-headless numpy
+      - run: cpp/ci.sh

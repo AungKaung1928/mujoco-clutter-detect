@@ -177,5 +177,17 @@ claim = (f"Median Laplacian variance is {st['tex']} for `tex` and\n{st['texd']} 
 check("render detail check", all(p in text for p in claim) and rd["real"] == gap["real"]
       and max(st.values()) < rd["real"]["laplacian_var_median"] / 2, f"README must contain {claim}")
 
+print("C++ detector (runs/cpp_ort.json)")
+co = load("cpp_ort.json")
+cp, pp, par = co["cpp_ms_p50"], co["python_ms_p50"], co["parity"]
+claims = (f"same ORT {co['ort']} as the Python wheel",
+          f"All {int(co['images'].split(':')[1].rstrip(']')) * 10:,} top-10 rows ({par['detections_above_thr']:,} above the 0.02 threshold)",
+          f"{co['images_with_tie_at_k']} of 200 images have a tie",
+          f"model only: C++ {cp['model_ms']:.3f} ms, Python {pp['model_ms']:.3f} ms",
+          f"End to end: C++ {cp['e2e_ms']:.3f} ms, Python {pp['e2e_ms']:.3f} ms; decode alone is {cp['decode_ms']:.3f} ms",
+          f"drops from {pp['e2e_ms'] - pp['model_ms']:.2f} ms to {cp['e2e_ms'] - cp['model_ms']:.2f} ms")
+check("C++ detector paragraph", all(c in text for c in claims) and par["max_abs_diff"] == 0
+      and par["class_mismatch"] == par["index_mismatch"] == 0, f"README must contain {claims}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
