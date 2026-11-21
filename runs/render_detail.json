@@ -79,6 +79,21 @@
    "saturation_mean": 164.5,
    "laplacian_var_median": 165.5,
    "noise_sigma_median": 0.59
+  },
+  "texl": {
+   "mean_rgb": [
+    101.6,
+    98.5,
+    129.2
+   ],
+   "std_rgb": [
+    59.9,
+    61.4,
+    64.1
+   ],
+   "saturation_mean": 163.7,
+   "laplacian_var_median": 246.9,
+   "noise_sigma_median": 0.61
   }
  },
  "split": {
@@ -93,6 +108,10 @@
   "texd": {
    "laplacian_var_objects_median": 661.1,
    "laplacian_var_background_median": 92.7
+  },
+  "texl": {
+   "laplacian_var_objects_median": 1894.6,
+   "laplacian_var_background_median": 25.2
   }
  }
 }

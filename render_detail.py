@@ -32,7 +32,7 @@ def main(out):
     res["split"] = {"hard": G.obj_bg(hard, hb[hb[:, 0] < N])}
     rng = np.random.default_rng(0)
     res["sets"]["hard_aug_photo"] = G.stats(np.stack([np.rint(photometric(x, rng) * 255).astype(np.uint8) for x in hard]))
-    for regime in ("tex", "texd"):
+    for regime in ("tex", "texd", "texl"):
         GD.generate(regime, N, 192, 0, "detailprobe", "tilt")
         im = np.load(f"data/{regime}/detailprobe_images.npy")
         res["sets"][regime] = G.stats(im)

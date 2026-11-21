@@ -34,7 +34,7 @@ N_TEX = 24   # procedural textures per bank (objects, table)
 N_DIS = 4    # distractor slots in regime texd: unlabeled shapes the detector must ignore
 
 
-def texture_assets(seed=0, n=N_TEX):
+def texture_assets(seed=0, n=N_TEX, labels=False):
     """XML <asset> block: n cube textures for objects, n 2-D ones for the table.
 
     Fixed bank, drawn once from `seed`, so the model compiles once and each image
@@ -44,8 +44,13 @@ def texture_assets(seed=0, n=N_TEX):
     rng = np.random.default_rng(seed)
     col = lambda: " ".join(f"{v:.3f}" for v in rng.uniform(0, 1, 3))
     out = ["<asset>"]
+    label = label_images(seed, n) if labels else None
     for bank, ttype in (("o", "cube"), ("t", "2d")):
         for i in range(n):
+            if label is not None and bank == "o":                 # same image on all six faces
+                out.append(f'<texture name="to{i}" type="cube" file="{label[i]}"/>')
+                out.append(f'<material name="mo{i}" texture="to{i}"/>')
+                continue
             kind = ("checker", "gradient", "flat")[i % 3]
             mark = f' mark="random" random="{rng.uniform(0.05, 0.4):.2f}" markrgb="{col()}"' if kind == "flat" else ""
             out.append(f'<texture name="t{bank}{i}" type="{ttype}" builtin="{kind}" rgb1="{col()}" rgb2="{col()}" '
@@ -56,10 +61,42 @@ def texture_assets(seed=0, n=N_TEX):
     return "\n".join(out)
 
 
+def label_images(seed=0, n=N_TEX, size=64):
+    """n printed-label-like images: high-contrast bands, blocks and two thick text lines.
+
+    The real-photo diagnostic (README Step 7) found the objects' printed surface missing:
+    flattening the real objects to one colour lifts class-agnostic mAP 5x. Objects are about
+    28 px on screen, so a 64-texel face is shrunk ~3x and fine print averages away; only
+    high-contrast elements a few texels wide survive (render_detail.py measures the result
+    against the photos). Each colour channel is 0 or 255. Written to data/textures/ (ignored)."""
+    import cv2
+    out_dir = os.path.join(ROOT, "data", "textures")
+    os.makedirs(out_dir, exist_ok=True)
+    rng = np.random.default_rng(seed)
+    col = lambda: tuple(int(v) for v in rng.choice([0, 255], 3))
+    paths = []
+    for i in range(n):
+        im = np.full((size, size, 3), col(), np.uint8)
+        for _ in range(6):                                        # bands
+            y0 = int(rng.integers(0, size))
+            cv2.rectangle(im, (0, y0), (size, y0 + int(rng.integers(size // 16, size // 6))), col(), -1)
+        for _ in range(20):                                       # blocks
+            x, y = (int(v) for v in rng.integers(0, size, 2))
+            w = int(rng.integers(size // 16, size // 5))
+            cv2.rectangle(im, (x, y), (x + w, y + w), col(), -1)
+        for _ in range(2):                                        # thick text lines
+            txt = "".join(chr(int(c)) for c in rng.integers(65, 91, int(rng.integers(3, 7))))
+            cv2.putText(im, txt, (int(rng.integers(0, size // 3)), int(rng.integers(12, size))),
+                        cv2.FONT_HERSHEY_SIMPLEX, float(rng.uniform(0.4, 0.8)), col(), 2)
+        paths.append(os.path.join(out_dir, f"label_{seed}_{i}.png"))
+        cv2.imwrite(paths[-1], im)
+    return paths
+
+
 def make_model(img_size, regime=None):
     xml = open(os.path.join(ROOT, "scene.xml")).read()
-    if regime in ("tex", "texd"):
-        xml = xml.replace("<worldbody>", texture_assets() + "\n<worldbody>", 1)
+    if regime in ("tex", "texd", "texl"):
+        xml = xml.replace("<worldbody>", texture_assets(labels=regime == "texl") + "\n<worldbody>", 1)
     if regime == "texd":
         dis = "\n".join(f'<body name="dis{i}" pos="{C.PARK_XY} {C.PARK_XY} 0">'
                          f'<geom name="dg{i}" type="capsule" size="0.02 0.02"/></body>' for i in range(N_DIS))
@@ -118,7 +155,7 @@ def sample_appearance(model, rng, regime, gids, table_gid, light_id):
         d = rng.uniform(0.4, 1.0)
         model.light_diffuse[light_id] = [d, d, d]
         model.geom_matid[table_gid] = -1
-        if regime in ("tex", "texd"):
+        if regime in ("tex", "texd", "texl"):
             # The material's texture replaces the colour only when the geom rgba is
             # MuJoCo's default grey, so reset it; a third of objects keep a plain hue.
             for g in gids:

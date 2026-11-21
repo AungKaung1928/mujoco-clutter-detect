@@ -223,5 +223,8 @@ flat = (f"lifts class-agnostic mAP from {gr['agnostic_mAP']:.4f}\nto {fl['agnost
 check("objects flattened diagnostic", all(p in text for p in flat) and fl["agnostic_mAP"] > 2 * gr["agnostic_mAP"]
       and fl["agnostic_mAP"] < 0.5 * sim_agn, f"README must contain {flat}")
 
+texl = (f"Detail inside the object boxes rises to {sp['texl'][O]} against\n{sp['tex'][O]} for `tex` and {rs[O]} on the photos",)
+check("texl detail", all(p in text for p in texl) and sp["tex"][O] < sp["texl"][O] < rs[O] * 1.5, f"README must contain {texl}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)

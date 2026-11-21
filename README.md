@@ -948,6 +948,11 @@ to 0.0702 and confident boxes on an object from 0.393 to 0.640. The printed text
 the failure. It is not all of it: flat rectangles in a pile still score far below the sim's own
 0.9099, so the piles and shapes matter too (cans become rectangles here, so only the
 class-agnostic numbers are fair).
+A regime for that, built and checked before any training: `texl` (`gen_dataset.label_images`) puts
+printed-label-like textures on the objects (high-contrast bands, blocks and thick text; a first try
+with fine 128-texel print barely moved the number, scratch only). Detail inside the object boxes rises to 1894.6 against
+671.3 for `tex` and 2587.4 on the photos (`render_detail.py`). Whether a model trained on it
+transfers better is the next measurement; it needs a cpuguard training run.
 
 Global image statistics are not it either (`gap_real_hope.py`, `runs/real_hope_gap.json`,
 1 thread, 9 s). The real crops carry far more fine detail (texture or noise; the measure
