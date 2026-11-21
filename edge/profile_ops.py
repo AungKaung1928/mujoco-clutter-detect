@@ -1,6 +1,7 @@
-"""Per-operator time of each edge graph, ONNX Runtime built-in profiler, 1 thread.
+"""Per-operator time of each edge graph, ONNX Runtime built-in profiler (default 1 thread).
 
     python edge/profile_ops.py --out runs/op_profile.json
+    python edge/profile_ops.py --threads 4 --out runs/op_profile_4t.json
 
 Same 200 hard/val images for every graph, batch 1, after 20 warm-up runs. Reports
 the mean ms per image by op type (kernel time only, from the profiler's node
@@ -26,9 +27,9 @@ from quantize import preprocess  # noqa: E402
 GRAPHS = ["detector.onnx", "detector_pruned_50.onnx", "detector_int8_minmax.onnx", "detector_int8_dynamic.onnx"]
 
 
-def profile(path, xs, warm=20):
+def profile(path, xs, threads=1, warm=20):
     o = ort.SessionOptions()
-    o.intra_op_num_threads = 1
+    o.intra_op_num_threads = threads
     o.inter_op_num_threads = 1
     o.enable_profiling = True
     o.profile_file_prefix = os.path.join("/tmp", "ortprof_" + os.path.basename(path))
@@ -67,14 +68,15 @@ def profile(path, xs, warm=20):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=200)
+    ap.add_argument("--threads", type=int, default=1)
     ap.add_argument("--out", default="")
     a = ap.parse_args()
     imgs = np.asarray(C.load_split(ROOT, "hard", "val")[0][:a.n])
     xs = preprocess(imgs)
-    out = {"images": f"hard/val[:{a.n}]", "threads": 1, "ort": ort.__version__,
+    out = {"images": f"hard/val[:{a.n}]", "threads": a.threads, "ort": ort.__version__,
            "load1": float(open("/proc/loadavg").read().split()[0]), "graphs": {}}
     for g in GRAPHS:
-        r = profile(os.path.join(ROOT, "runs", g), xs)
+        r = profile(os.path.join(ROOT, "runs", g), xs, a.threads)
         out["graphs"][g] = r
         top = ", ".join(f"{k} {v:.3f}" for k, v in list(r["by_op_ms"].items())[:4])
         print(f"{g:28s} run {r['run_ms_median']:.3f} ms  kernels {r['kernel_ms_mean']:.3f} ms  [{top}]")

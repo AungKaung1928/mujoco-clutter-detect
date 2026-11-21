@@ -1,0 +1,60 @@
+{
+ "images": "hard/val[:200]",
+ "threads": 4,
+ "ort": "1.30.0",
+ "load1": 1.79,
+ "graphs": {
+  "detector.onnx": {
+   "run_ms_median": 1.6883,
+   "kernel_ms_mean": 1.5062,
+   "conv_macs_executed": 217497600,
+   "by_op_ms": {
+    "Conv": 1.4232,
+    "Upsample": 0.0497,
+    "ReorderOutput": 0.0333
+   }
+  },
+  "detector_pruned_50.onnx": {
+   "run_ms_median": 1.3933,
+   "kernel_ms_mean": 1.3923,
+   "conv_macs_executed": 106937856,
+   "by_op_ms": {
+    "Conv": 0.8122,
+    "FusedConv": 0.4168,
+    "ReorderOutput": 0.0835,
+    "Upsample": 0.0394,
+    "ReorderInput": 0.03,
+    "Resize": 0.0104
+   }
+  },
+  "detector_int8_minmax.onnx": {
+   "run_ms_median": 0.9582,
+   "kernel_ms_mean": 0.8518,
+   "conv_macs_executed": null,
+   "by_op_ms": {
+    "QLinearConv": 0.5583,
+    "Resize": 0.1634,
+    "Transpose": 0.055,
+    "QLinearAdd": 0.0322,
+    "QuantizeLinear": 0.0242,
+    "DequantizeLinear": 0.0136,
+    "QLinearSigmoid": 0.0051
+   }
+  },
+  "detector_int8_dynamic.onnx": {
+   "run_ms_median": 2.4709,
+   "kernel_ms_mean": 2.1863,
+   "conv_macs_executed": null,
+   "by_op_ms": {
+    "ConvInteger": 1.2562,
+    "Cast": 0.2533,
+    "DynamicQuantizeLinear": 0.2282,
+    "Mul": 0.1912,
+    "Add": 0.1506,
+    "Relu": 0.0645,
+    "Resize": 0.0352,
+    "Sigmoid": 0.0071
+   }
+  }
+ }
+}
