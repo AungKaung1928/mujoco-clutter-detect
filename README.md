@@ -903,9 +903,12 @@ The table keeps the sim's top 10 detections per image, which caps recall at 0.84
 (45 of 50 photos have more than 10 scored objects). With the top 100 (`--k 100`,
 `runs/real_hope_k100.json`) `hard` reaches mAP 0.0068, recall@0.5 0.204 box / 0.019 cylinder:
 the cap is not the gap.
-Nor is the class label: scored class-agnostic (a detection counts on any can or box, whatever its label), `hard` gets mAP
-0.0084 and recall@0.5 0.089 against 0.0063 per class. The detector misses the objects; it does
-not find them and name them wrong.
+Nor is the class label: scored class-agnostic (a detection counts on any can or box,
+whatever its label), `hard` gets mAP 0.0084 (0.0063 per class) and recall@0.5 0.089.
+The detector misses the objects; it does not find them and name them wrong.
+Recall alone overstates it: the same boxes scored on a photo of another scene still reach
+recall@0.5 0.048 (top 10) and 0.108 (top 100), about half of the real values. Ranked by score
+the signal is real but small: class-agnostic mAP 0.0084 against 0.0007 by chance.
 **Negative result: neither model transfers.** Randomisation helps (mAP 31×, box recall
 2% → 13%) but from almost nothing to almost nothing. Diagnostics, not in the table:
 class-agnostic recall@0.5 is 0.089 for `hard`, so localisation fails too, not only the

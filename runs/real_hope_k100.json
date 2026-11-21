@@ -19,7 +19,9 @@
    "recall50_cylinder": 0.0839,
    "agnostic_mAP": 0.0009,
    "agnostic_AP50": 0.006,
-   "agnostic_recall50": 0.1094
+   "agnostic_recall50": 0.1094,
+   "chance_agnostic_recall50": 0.1043,
+   "chance_agnostic_mAP": 0.0005
   },
   "det_hard_none.pt": {
    "mAP": 0.0068,
@@ -30,9 +32,12 @@
    "recall50_cylinder": 0.0194,
    "agnostic_mAP": 0.0107,
    "agnostic_AP50": 0.0397,
-   "agnostic_recall50": 0.2205
+   "agnostic_recall50": 0.2205,
+   "chance_agnostic_recall50": 0.1077,
+   "chance_agnostic_mAP": 0.001
   }
  },
+ "chance_pairs_same_scene": 0,
  "k": 100,
  "images_over_k": 0,
  "max_recall_at_k": 1.0

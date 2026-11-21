@@ -87,9 +87,15 @@ sentence = (f"caps recall at {hope['max_recall_at_k']:.3f} here\n({hope['images_
 check("top-10 cap and top-100 row", all(p in "\n".join(LINES) for p in sentence) and k100["k"] == 100,
       f"README must contain {sentence}")
 h10 = hope["models"]["det_hard_none.pt"]
-agn = (f"`hard` gets mAP\n{h10['agnostic_mAP']:.4f} and recall@0.5 {h10['agnostic_recall50']:.3f} "
-       f"against {h10['mAP']:.4f} per class")
+agn = (f"`hard` gets mAP {h10['agnostic_mAP']:.4f} ({h10['mAP']:.4f} per class) "
+       f"and recall@0.5 {h10['agnostic_recall50']:.3f}")
 check("class-agnostic row", agn in "\n".join(LINES), f"README must contain {agn!r}")
+c100 = k100["models"]["det_hard_none.pt"]
+chance = (f"recall@0.5 {h10['chance_agnostic_recall50']:.3f} (top 10) and {c100['chance_agnostic_recall50']:.3f} (top 100)",
+          f"class-agnostic mAP {h10['agnostic_mAP']:.4f} against {h10['chance_agnostic_mAP']:.4f} by chance")
+check("chance control (boxes from another scene)",
+      all(p in "\n".join(LINES) for p in chance) and hope["chance_pairs_same_scene"] == 0,
+      f"README must contain {chance}")
 boxes, cans = hope["objects"]["box"], hope["objects"]["cylinder"]
 # an ignored object is entered once per class, so two entries are one object
 per_image = (boxes + cans + hope["ignored_entries"] / 2) / hope["images"]

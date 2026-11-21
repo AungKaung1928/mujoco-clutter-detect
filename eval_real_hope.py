@@ -93,6 +93,9 @@ def main(root, ckpts, out, k=10):
            "object_px_median": round(float(np.median(sizes)), 1), "crop_px": sorted({m["crop_px"] for m in meta}),
            "models": {}}
     per_img = np.bincount(gts[~ign, 0].astype(int), minlength=len(imgs))
+    half = len(imgs) // 2
+    res["chance_pairs_same_scene"] = sum(meta[i]["scene"] == meta[(i + half) % len(imgs)]["scene"]
+                                         for i in range(len(imgs)))
     res.update(k=k, images_over_k=int((per_img > k).sum()),
                max_recall_at_k=round(float(np.minimum(per_img, k).sum() / per_img.sum()), 3))
     print(f"{len(imgs)} images, objects {n_pos}, ignored entries {int(ign.sum())}, "
@@ -105,13 +108,19 @@ def main(root, ckpts, out, k=10):
         r = AP.evaluate(dets, gts, gt_ignore=ign)
         one = lambda x: np.c_[x[:, :1], np.zeros(len(x)), x[:, 2:]]   # every class -> 0
         ra = AP.evaluate(one(dets), one(gts), n_classes=1, gt_ignore=ign)
+        # Chance control: the same boxes scored against a photo of another scene (i -> i + n/2).
+        moved = dets.copy()
+        moved[:, 0] = (moved[:, 0] + len(imgs) // 2) % len(imgs)
+        rc = AP.evaluate(one(moved), one(gts), n_classes=1, gt_ignore=ign)
         row = {"mAP": round(float(r["mAP"]), 4), "AP50": round(float(r["AP50"]), 4),
                "AP_box": round(float(r["ap_per_class"][C.CLS_ID["box"]]), 4),
                "AP_cylinder": round(float(r["ap_per_class"][C.CLS_ID["cylinder"]]), 4),
                "recall50_box": round(float(r["recall"][0, C.CLS_ID["box"]]), 4),
                "recall50_cylinder": round(float(r["recall"][0, C.CLS_ID["cylinder"]]), 4),
                "agnostic_mAP": round(float(ra["mAP"]), 4), "agnostic_AP50": round(float(ra["AP50"]), 4),
-               "agnostic_recall50": round(float(ra["recall"][0, 0]), 4)}
+               "agnostic_recall50": round(float(ra["recall"][0, 0]), 4),
+               "chance_agnostic_recall50": round(float(rc["recall"][0, 0]), 4),
+               "chance_agnostic_mAP": round(float(rc["mAP"]), 4)}
         res["models"][os.path.basename(path)] = row
         print(f"{os.path.basename(path):24s} " + "  ".join(f"{k} {v:.4f}" for k, v in row.items()))
     if out:
