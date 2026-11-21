@@ -1,0 +1,19 @@
+{
+ "model": "runs/det_hard_none.pt",
+ "n": 300,
+ "seed": 10000,
+ "regimes": {
+  "hard": {
+   "mAP": 0.912,
+   "agnostic_mAP": 0.9108
+  },
+  "tex": {
+   "mAP": 0.1124,
+   "agnostic_mAP": 0.1047
+  },
+  "texl": {
+   "mAP": 0.0761,
+   "agnostic_mAP": 0.072
+  }
+ }
+}

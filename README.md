@@ -953,6 +953,11 @@ printed-label-like textures on the objects (high-contrast bands, blocks and thic
 with fine 128-texel print barely moved the number, scratch only). Detail inside the object boxes rises to 1894.6 against
 671.3 for `tex` and 2587.4 on the photos (`render_detail.py`). Whether a model trained on it
 transfers better is the next measurement; it needs a cpuguard training run.
+The textures alone reproduce the failure inside the sim (`texture_shift.py`, `runs/texture_shift.json`,
+300 fresh renders each, inference only): the `hard` model scores class-agnostic mAP 0.9108 on
+`hard` renders (the first 300 val images, pixel for pixel), 0.1047 on `tex` and 0.0720 on `texl`. A model
+that never saw textured objects collapses on them in the sim too, most of the way down to the photos'
+0.0084, so `texl` is a sim test bed for the failure that needs no real images.
 
 Global image statistics are not it either (`gap_real_hope.py`, `runs/real_hope_gap.json`,
 1 thread, 9 s). The real crops carry far more fine detail (texture or noise; the measure

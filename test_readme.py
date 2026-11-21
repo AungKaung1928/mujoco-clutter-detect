@@ -226,5 +226,11 @@ check("objects flattened diagnostic", all(p in text for p in flat) and fl["agnos
 texl = (f"Detail inside the object boxes rises to {sp['texl'][O]} against\n{sp['tex'][O]} for `tex` and {rs[O]} on the photos",)
 check("texl detail", all(p in text for p in texl) and sp["tex"][O] < sp["texl"][O] < rs[O] * 1.5, f"README must contain {texl}")
 
+ts = load("texture_shift.json")["regimes"]
+shift = (f"the `hard` model scores class-agnostic mAP {ts['hard']['agnostic_mAP']:.4f} on\n`hard` renders",
+         f"{ts['tex']['agnostic_mAP']:.4f} on `tex` and {ts['texl']['agnostic_mAP']:.4f} on `texl`")
+check("texture shift in sim", all(p in text for p in shift) and abs(ts["hard"]["agnostic_mAP"] - 0.91) < 0.02
+      and ts["texl"]["agnostic_mAP"] < 0.2, f"README must contain {shift}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
