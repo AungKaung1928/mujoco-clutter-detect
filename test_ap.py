@@ -118,6 +118,51 @@ print(f"  {'ok  ' if abs(got - raw) > 1e-6 else 'FAIL'}  "
 if abs(got - raw) <= 1e-6:
     FAILED.append("monotonisation")
 
+print("\nmatching order, COCO's (pycocotools evaluateImg)")
+# A det overlapping an ignored gt at IoU 1.0 and a real gt at IoU 0.6 must take
+# the real one: real ground truth is offered first, and the scan stops before the
+# ignored ones once a real match exists. Listing the ignored gt first in the input
+# must not change that.
+check("real gt before a better ignored one",
+      ap1([det(0, 0, B, 0.9)], [gt(0, 0, B), gt(0, 0, [2.5, 0.0, 12.5, 10.0])],
+          gt_ignore=[True, False]), 1.0, note="matching the ignored gt would give 0")
+# Equal IoU (0.6) with two gts: the later one wins, as in pycocotools, which
+# leaves the earlier gt free for the second det: two hits.
+check("equal IoU: later gt wins the tie",
+      ap1([det(0, 0, [2.5, 0.0, 12.5, 10.0], 0.9), det(0, 0, B, 0.8)],
+          [gt(0, 0, B), gt(0, 0, [5.0, 0.0, 15.0, 10.0])]), 1.0,
+      note="first-wins would give 51/101")
+# A det on an ignored gt is dropped from the curve, not counted as a hit:
+# remaining order FP, TP over 1 positive -> precision 0.5 everywhere.
+check("det on ignored gt is not a hit",
+      ap1([det(0, 0, B2, 0.9), det(0, 0, [100.0, 100.0, 110.0, 110.0], 0.8), det(0, 0, B, 0.7)],
+          [gt(0, 0, B2), gt(0, 0, B)], gt_ignore=[True, False]), 0.5)
+# exact monotone value of the case below: rc [.5, .5, 1], pr [1, .5, 2/3] -> [1, 2/3, 2/3]
+check("monotone AP, exact",
+      ap1([det(0, 0, B, 0.9), det(0, 0, B, 0.8), det(1, 0, B, 0.7)], [gt(0, 0, B), gt(1, 0, B)]),
+      (51 * 1.0 + 50 * 2 / 3) / 101)
+
+print("\nsummaries")
+r = ap.evaluate([det(0, 0, B, 0.9)], [gt(0, 0, B)], n_classes=2, iou_thrs=[0.5])
+check("mAP over present classes only", r["mAP"], 1.0, note="absent class as 0 would give 0.5")
+# IoU 0.74 passes the five COCO thresholds 0.50..0.70 and fails 0.75..0.95
+r = ap.evaluate([det(0, 0, [0.0, 0.0, 10.0, 7.4], 0.9)], [gt(0, 0, B)], n_classes=1)
+check("COCO thresholds: mAP at IoU 0.74", r["mAP"], 0.5)
+check("COCO thresholds: AP75 at IoU 0.74", r["AP75"], 0.0)
+
+print("\nstrata")
+# size: a large unmatched det must not count against the small band
+gts2 = [gt(0, 0, [0.0, 0.0, 4.0, 4.0]), gt(0, 0, [20.0, 20.0, 40.0, 40.0])]
+dets2 = [det(0, 0, [100.0, 100.0, 120.0, 120.0], 0.9), det(0, 0, [0.0, 0.0, 4.0, 4.0], 0.8)]
+st = ap.evaluate_size_strata(dets2, gts2, [0, 10, 100], n_classes=1)
+check("small band ignores a large false positive", float(st[(0, 10)]["ap"][0, 0]), 1.0)
+check("large band: missed gt, large fp", float(st[(10, 100)]["ap"][0, 0]), 0.0)
+# visibility: bands are [lo, hi); a gt at exactly 0.5 belongs to the upper band
+vb = ap.recall_by_visibility([det(0, 0, B, 0.9)], [gt(0, 0, B), gt(0, 0, B2)], [0.5, 0.2],
+                             [0.0, 0.5, 1.01], n_classes=1)
+check("visibility 0.5 is in [0.5, 1.01)", vb[(0.5, 1.01)]["recall"], 1.0)
+check("visibility band [0, 0.5) holds only the missed gt", vb[(0.0, 0.5)]["recall"], 0.0)
+
 print()
 if FAILED:
     print(f"{len(FAILED)} FAILED: {FAILED}")
