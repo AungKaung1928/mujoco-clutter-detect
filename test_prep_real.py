@@ -62,6 +62,14 @@ def test_centre_survives_and_shape():
     assert c[0] > 200 and c[1] < 60 and c[2] < 60, c
 
 
+def test_downscale_averages_instead_of_sampling():
+    # A 1 px black/white checkerboard, cropped and shrunk ~6x: area averaging gives
+    # mid grey everywhere; picking pixels (nearest) would keep pure 0 / 255 and alias.
+    a = ((np.indices((1200, 1600)).sum(0) % 2) * 255).astype(np.uint8)
+    out, _ = P.prepare(Image.fromarray(np.stack([a] * 3, -1)), 26.0)
+    assert 100 < out.min() and out.max() < 155, (out.min(), out.max())
+
+
 def test_exif_orientation_is_applied():
     # Stored landscape with Orientation=6 (rotate 90 CW to view): the scene is portrait.
     a = np.zeros((300, 400, 3), np.uint8)
