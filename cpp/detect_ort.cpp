@@ -124,7 +124,11 @@ int main(int argc, char** argv) {
       idx_mismatch += d[j].idx != static_cast<int>(r[0]);
       cls_mismatch += d[j].cls != static_cast<int>(r[1]);
       const float got[5] = {d[j].score, d[j].x0, d[j].y0, d[j].x1, d[j].y1};
-      for (int c = 0; c < 5; ++c) max_diff = std::max(max_diff, double(std::fabs(got[c] - r[2 + c])));
+      for (int c = 0; c < 5; ++c) {
+        const double diff = std::fabs(got[c] - r[2 + c]);
+        // std::max would drop a NaN and report parity; max() instead of inf keeps the JSON valid
+        max_diff = std::isfinite(diff) ? std::max(max_diff, diff) : std::numeric_limits<double>::max();
+      }
       kept += d[j].score > kThr;
     }
   }
