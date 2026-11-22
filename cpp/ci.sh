@@ -24,3 +24,9 @@ ORT_INCLUDE="$work/ort/include/onnxruntime/core/session" ORT_LIB="$work/lib" "$h
 for m in runs/detector_int8_minmax.onnx runs/detector.onnx; do
   "$py" "$here/bench.py" --model "$m" --synthetic --n 50 --n-time 100 --rounds 1
 done
+# A bad timing count must be refused (exit 2), not crash: n_time 0 used to segfault, -1 abort.
+for n in 0 -1; do
+  rc=0; "$here/detect_ort" runs/detector.onnx "$here/images.u8" "$here/ref.f32" "$n" 2>/dev/null || rc=$?
+  [ "$rc" -eq 2 ] || { echo "detect_ort n_time $n: exit $rc, want 2"; exit 1; }
+done
+echo "detect_ort refuses n_time 0 and -1"
