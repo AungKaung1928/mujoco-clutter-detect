@@ -58,6 +58,21 @@ check("ignored entries (2 objects x 2 classes)", int(ign.sum()), 4)
 check("ignored entries cover both classes", sorted(gts[ign][:, 1].tolist()), [0, 0, 1, 1])
 check("box coordinates in crop pixels", gts[0, 2:], [100 * s, 100 * s, 208 * s, 154 * s])
 
+check("under 2 px wide after the crop: dropped", E.to_crop([500, 100, 1.5, 40], 420, 0, 1080), None)
+
+print("\nscene bootstrap of (mAP - chance control)")
+# two scenes, one photo each, one object per photo; scene a detected exactly, scene b missed
+gts_b = np.array([[0, 0, 10, 10, 50, 50], [1, 0, 10, 10, 50, 50]], float)
+hit, miss = [10, 10, 50, 50], [120, 120, 160, 160]
+dets_b = np.array([[0, 0, *hit, 0.9], [1, 0, *miss, 0.9]], float)
+moved_b = np.array([[0, 0, *miss, 0.9], [1, 0, *miss, 0.9]], float)
+meta_b = [{"scene": "a"}, {"scene": "b"}]
+ign_b = np.zeros(2, bool)
+# resampling scenes WITH replacement: {a,a} -> 1, {a,b} -> 0.5, {b,b} -> 0, so the 95 % interval spans 0..1
+check("interval spans both scenes", E.scene_bootstrap(dets_b, moved_b, gts_b, ign_b, meta_b, n_boot=200), [0.0, 1.0])
+# a control identical to the detections must give a zero difference, not the detector's own mAP
+check("control equal to detections: zero", E.scene_bootstrap(dets_b, dets_b, gts_b, ign_b, meta_b, n_boot=200), [0.0, 0.0])
+
 import gap_real_hope as G
 print("\ngap_real_hope test-time corrections")
 rng = np.random.default_rng(0)
