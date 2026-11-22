@@ -291,5 +291,14 @@ print("README training-seed note (det_hard_none.json)")
 seed = load("det_hard_none.json")["seed"]
 check("README seed", f"one training seed ({seed})" in " ".join(README_LINES), f"README must say one training seed ({seed})")
 
+print("one-process re-timing, three tracked runs (runs/edge_vs_classical*.json)")
+ev = [load(f"edge_vs_classical{x}.json")["ms_per_img"] for x in ("", "_r2", "_r3")]
+med = lambda r, k: r[k]["median"]
+fast = [100 * (1 - med(r, "int8 model") / med(r, "classical bgsub+ws")) for r in ev]
+slow = [100 * (med(r, "int8 end to end") / med(r, "classical bgsub+ws") - 1) for r in ev]
+claim = (f"INT8 is {min(fast):.0f}–{max(fast):.0f} % faster than the classical pipeline as a model, "
+         f"but end to end on one thread it is {min(slow):.0f}–{max(slow):.0f} % slower")
+check("re-timing ranges", claim in text and min(slow) > 0, f"RESULTS must contain {claim!r}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
