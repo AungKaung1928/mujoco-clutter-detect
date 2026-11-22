@@ -281,5 +281,11 @@ print("README real-photo line (runs/real_hope.json)")
 claim = f"on {hope['images']} real photos (HOPE) the `hard`-trained detector scores mAP {hope['models']['det_hard_none.pt']['mAP']:.4f}"
 check("README real-photo line", claim in " ".join(README_LINES), f"README must contain {claim!r}")
 
+print("README one-line summary (quant_minmax.json, baseline_hard.json)")
+sq, sb = load("quant_minmax.json"), load("baseline_hard.json")
+claim = (f"{sq['ref']['score']['mAP']:.2f} mAP@[.5:.95] against {sb['bgsub+ws']['mAP']:.2f} for a fitted classical pipeline. "
+         f"Static INT8 through ONNX Runtime runs the model in {sq['latency_ms']['1t']:.2f} ms on one thread")
+check("README summary line", claim in " ".join(README_LINES[:4]), f"README line 3 must contain {claim!r}")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
