@@ -287,5 +287,9 @@ claim = (f"{sq['ref']['score']['mAP']:.2f} mAP@[.5:.95] against {sb['bgsub+ws'][
          f"Static INT8 through ONNX Runtime runs the model in {sq['latency_ms']['1t']:.2f} ms on one thread")
 check("README summary line", claim in " ".join(README_LINES[:4]), f"README line 3 must contain {claim!r}")
 
+print("README training-seed note (det_hard_none.json)")
+seed = load("det_hard_none.json")["seed"]
+check("README seed", f"one training seed ({seed})" in " ".join(README_LINES), f"README must say one training seed ({seed})")
+
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
