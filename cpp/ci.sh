@@ -30,3 +30,9 @@ for n in 0 -1; do
   [ "$rc" -eq 2 ] || { echo "detect_ort n_time $n: exit $rc, want 2"; exit 1; }
 done
 echo "detect_ort refuses n_time 0 and -1"
+# A NaN in the reference must fail parity (std::max used to drop it and report a match).
+"$py" -c 'import sys, numpy as np; r = np.fromfile(sys.argv[1], np.float32); r[2] = np.nan; r.tofile(sys.argv[2])' \
+  "$here/ref.f32" "$work/ref_nan.f32"
+rc=0; "$here/detect_ort" runs/detector.onnx "$here/images.u8" "$work/ref_nan.f32" 5 >/dev/null 2>&1 || rc=$?
+[ "$rc" -eq 1 ] || { echo "detect_ort with a NaN score in ref.f32: exit $rc, want 1"; exit 1; }
+echo "detect_ort fails parity on a NaN reference"
