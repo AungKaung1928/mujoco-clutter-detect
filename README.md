@@ -4,8 +4,6 @@ Detects boxes, cylinders and spheres on a simulated tabletop: 0.91 mAP@[.5:.95] 
 
 ![Detections on hard/val: dashed white ground truth, solid coloured predictions, centre heatmap beside each image](out/cnn_detections.png)
 
-`hard/val`, 2000 rendered images, 8992 objects. Latency = model time, batch 1, one x86 laptop, idle (add 0.18 ms decode for end to end).
-
 `hard/val`, 2000 images, 8992 objects. Latency = model time, batch 1, one x86 box, idle; add 0.18 ms decode for end to end. Measured 2026-09-23 (steps 3, 5: 2026-09-06).
 
 | graph | mAP@[.5:.95] | Δ mAP | ms, 1 thread | ms, 4 threads | MB |
