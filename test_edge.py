@@ -140,6 +140,41 @@ def test_full_channels_matches_detector():
     assert slim.n_params() == m.n_params()
 
 
+
+def test_calibration_input_is_the_training_transform():
+    """INT8 calibration statistics are only right if the calibration images go
+    through the training normalisation: (x/255 - 0.45) / 0.25, NHWC -> NCHW."""
+    from quantize import preprocess
+    img = np.zeros((1, 2, 2, 3), np.uint8)
+    img[..., 0], img[..., 1], img[..., 2] = 0, 255, 51
+    x = preprocess(img)
+    assert x.shape == (1, 3, 2, 2) and x.dtype == np.float32
+    assert np.allclose(x[0, :, 0, 0], [-1.8, 2.2, (0.2 - 0.45) / 0.25])
+
+
+def test_calibration_reader_yields_each_image_once():
+    imgs = np.stack([np.full((4, 4, 3), v, np.uint8) for v in (0, 100, 200)])
+    r = ImageReader(imgs, 3)
+    seen = []
+    while (b := r.get_next()) is not None:
+        seen.append(float(b["image"][0, 0, 0, 0]))
+    assert len(seen) == 3 and len(set(seen)) == 3
+    r.rewind()
+    assert r.get_next() is not None
+
+
+def test_layer_mode_keeps_the_largest_gammas():
+    torch.manual_seed(2)
+    m = D.Detector(w=16, head=32).eval()
+    for mod in m.modules():                 # BN weights start at 1.0: all ties without this
+        if isinstance(mod, torch.nn.BatchNorm2d):
+            mod.weight.data.normal_()
+    keep = P.select_channels(m, 0.5, mode="layer")
+    for name, g in P.gammas(m).items():
+        k = len(keep[name])
+        assert set(keep[name].tolist()) == set(torch.topk(g, k).indices.tolist()), name
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for f in fns:
