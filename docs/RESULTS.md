@@ -64,11 +64,10 @@ per scene instead of 4.7.
 ## Task decisions
 
 - **Only the box carries a yaw label.** A sphere has no observable orientation and
-  a cylinder's rotation about z is unobservable too. Labelling them would train the
-  network to fit noise. `yaw` is `NaN` for both, and the loss must mask it.
-- **Box yaw keeps block 1's 90° fold**, `(sin 4θ, cos 4θ)`, for the same reason: a
-  square-topped box is only observable modulo 90°, and regressing raw degrees puts
-  a wrap discontinuity in the middle of the label range.
+  a cylinder's rotation about z is unobservable too. `yaw_rad` is `NaN` for both.
+- **Box yaw is sampled in [0°, 90°)**, block 1's fold: a square-topped box is only
+  observable modulo 90°. The label is stored raw in `yaw_rad` for later pose work;
+  no detector head regresses it (heads: heatmap, size, offset, `detector.py`).
 - **192 px, not 128.** Objects median ≈ 28 px on a side. At 128 px they would be
   ≈ 19 px, below the COCO "small object" threshold, and the task would be measuring
   the renderer rather than the detector.

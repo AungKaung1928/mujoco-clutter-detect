@@ -52,22 +52,7 @@ MIN_VISIBLE_PX = 12        # below this the object is not a detectable target
 MIN_VISIBLE_FRAC = 0.10    # below this it is occluded past usefulness
 
 
-def yaw_to_vec(yaw):
-    return np.stack([np.sin(YAW_FOLD * yaw), np.cos(YAW_FOLD * yaw)], -1)
-
-
-def vec_to_yaw(v):
-    t = np.arctan2(v[..., 0], v[..., 1]) / YAW_FOLD
-    return np.mod(t, np.pi / 2)
-
-
-def yaw_err_deg(a, b):
-    d = np.mod(np.asarray(a) - np.asarray(b), np.pi / 2)
-    d = np.minimum(d, np.pi / 2 - d)
-    return np.degrees(d)
-
-
-# --- overhead projection, unchanged from block 1, kept for label verification ---
+# --- overhead projection, unchanged from block 1; test_top_labels.py verifies the labels with it ---
 
 def top_px_per_m(img_size, obj_half_height):
     d = TOP_CAM_HEIGHT - obj_half_height
