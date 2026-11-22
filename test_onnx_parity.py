@@ -33,8 +33,15 @@ sess = ort.InferenceSession(os.path.join(HERE, "runs", "detector.onnx"), provide
 got = [np.concatenate(h) for h in zip(*(sess.run(["hm", "wh", "off"], {"image": x[i:i + 1]}) for i in range(len(x))))]
 diffs = [float(np.abs(a - b).max()) for a, b in zip(ref, got)]
 recorded = json.load(open(os.path.join(HERE, "runs", "onnx.json")))["max_diff"]
-# all(d < TOL), not max(diffs) < TOL: builtin max skips a NaN that is not first.
-ok = all(d < TOL for d in diffs) and all(r < TOL for r in recorded)
+
+
+def under_tol(values):
+    """all(v < TOL), not max(values) < TOL: builtin max skips a NaN that is not first."""
+    return all(v < TOL for v in values)
+
+
+assert not under_tol([1e-6, float("nan"), 1e-6]), "a NaN head must fail the parity check"
+ok = under_tol(diffs) and under_tol(recorded)
 print(f"  {'ok  ' if ok else 'FAIL'}  tracked detector.onnx vs det_hard_none.pt, 4 seeded inputs: "
       f"max |diff| hm/wh/off {diffs[0]:.1e} / {diffs[1]:.1e} / {diffs[2]:.1e} (< {TOL})")
 sys.exit(0 if ok else 1)
