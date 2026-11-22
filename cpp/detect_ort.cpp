@@ -92,6 +92,7 @@ int main(int argc, char** argv) {
     std::fprintf(stderr, "images/ref size mismatch\n");
     return 2;
   }
+  if (n_time < 1) { std::fprintf(stderr, "n_time must be >= 1\n"); return 2; }
 
   Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "detect");
   Ort::SessionOptions so;
