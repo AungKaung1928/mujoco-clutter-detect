@@ -94,13 +94,13 @@ else
   echo "runs/det_hard_none.pt is missing (it is tracked: check out the full repo). Or retrain:"
   echo "    nice -n 10 python train_det.py --regime hard --epochs 25 \\"
   echo "        --save runs/det_hard_none.json --ckpt runs/det_hard_none.pt"
-  echo "~35 min on 8 threads. See README for the thermal note."
+  echo "~35 min on 8 threads. See docs/RESULTS.md for the thermal note."
 fi
 
 
 cat <<'MSG'
 
-step 6 measurements (idle box only, record the load average; see README):
+step 6 measurements (idle box only, record the load average; see docs/RESULTS.md):
     nice -n 10 python quantize.py --calib 200                          # ~3 min
     nice -n 10 python prune.py --ratios 0.25 0.5 --finetune-epochs 3 --int8   # ~15 min
     python edge_curve.py --out out/edge_curve.png

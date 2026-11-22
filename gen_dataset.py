@@ -64,7 +64,7 @@ def texture_assets(seed=0, n=N_TEX, labels=False):
 def label_images(seed=0, n=N_TEX, size=64):
     """n printed-label-like images: high-contrast bands, blocks and two thick text lines.
 
-    The real-photo diagnostic (README Step 7) found the objects' printed surface missing:
+    The real-photo diagnostic (docs/RESULTS.md Step 7) found the objects' printed surface missing:
     flattening the real objects to one colour lifts class-agnostic mAP 5x. Objects are about
     28 px on screen, so a 64-texel face is shrunk ~3x and fine print averages away; only
     high-contrast elements a few texels wide survive (render_detail.py measures the result

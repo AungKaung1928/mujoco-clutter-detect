@@ -1,7 +1,8 @@
-"""README headline table and the real-photo table against the committed result files (no model, stdlib only).
+"""README headline table and the docs/RESULTS.md claims against the committed result files (no model, stdlib only).
 
 Each row of the "graph | mAP | Δ mAP | ms 1 thread | ms 4 threads" table at the top of
-README.md must equal the JSON it was copied from. Δ is the exact difference, rounded
+README.md must equal the JSON it was copied from. Every other claim may sit in README.md
+or docs/RESULTS.md (the long write-up moved there). Δ is the exact difference, rounded
 (not the difference of the two rounded mAPs: that made two cells 1e-4 off before this test).
 
 Run:  python test_readme.py
@@ -25,11 +26,13 @@ def load(name):
 
 
 with open(os.path.join(HERE, "README.md"), encoding="utf-8") as f:
-    LINES = f.read().splitlines()
+    README_LINES = f.read().splitlines()
+with open(os.path.join(HERE, "docs", "RESULTS.md"), encoding="utf-8") as f:
+    LINES = README_LINES + f.read().splitlines()
 
 
 def row(prefix):
-    for line in LINES:
+    for line in README_LINES:
         if line.startswith(f"| {prefix}"):
             return [c.strip().strip("*") for c in line.strip().strip("|").split("|")][1:]
     raise AssertionError(f"README row not found: {prefix}")
@@ -66,7 +69,7 @@ for prefix, want in expected.items():
     check(prefix, got == want, f"README {got} vs JSON {want}")
 
 print("claims next to the table")
-mm_line = next(l for l in LINES if l.startswith("| INT8 static, MinMax"))
+mm_line = next(l for l in README_LINES if l.startswith("| INT8 static, MinMax"))
 check("MinMax = Entropy (same SHA-256)", mm["sha256"] == ent["sha256"] and "same SHA-256" in mm_line)
 
 print("key point: appearance randomisation vs augmentation (runs/ablation.json)")
@@ -272,7 +275,11 @@ check("INT8 reproduction note", all(c in text for c in claims) and r123["sha256"
 print("Headline end-to-end tie (runs/cpp_ort_classical.json)")
 hc = load("cpp_ort_classical.json")
 claim = f"ties the classical pipeline, {hc['cpp_ms_p50']['e2e_ms']:.3f} against {hc['classical_ms_p50']['e2e_ms']:.3f} ms"
-check("headline end-to-end qualifier", claim in " ".join(" ".join(LINES[:20]).split()), f"README top must contain {claim!r}")
+check("headline end-to-end qualifier", claim in " ".join(" ".join(README_LINES[:20]).split()), f"README top must contain {claim!r}")
+
+print("README real-photo line (runs/real_hope.json)")
+claim = f"on {hope['images']} real photos (HOPE) the `hard`-trained detector scores mAP {hope['models']['det_hard_none.pt']['mAP']:.4f}"
+check("README real-photo line", claim in " ".join(README_LINES), f"README must contain {claim!r}")
 
 print(f"\n{'FAILED: ' + ', '.join(FAILED) if FAILED else 'all passed'}")
 raise SystemExit(1 if FAILED else 0)
