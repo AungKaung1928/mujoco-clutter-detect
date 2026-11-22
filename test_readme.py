@@ -272,9 +272,16 @@ check("INT8 reproduction note", all(c in text for c in claims) and r123["sha256"
       and r123["score"]["mAP"] == r130["score"]["mAP"] == qm["score"]["mAP"]
       and r130["score"]["n_dets"] == qm["score"]["n_dets"], f"README must contain {claims}")
 
-print("Headline end-to-end tie (runs/cpp_ort_classical.json)")
-hc = load("cpp_ort_classical.json")
-claim = f"ties the classical pipeline, {hc['cpp_ms_p50']['e2e_ms']:.3f} against {hc['classical_ms_p50']['e2e_ms']:.3f} ms"
+print("C++ vs classical, six runs: low-load paragraph and README summary (runs/cpp_ort_classical*.json)")
+c6 = [load(f"cpp_ort_classical{x}.json") for x in ("", "_r2", "_r3", "_r4", "_r5", "_r6")]
+gap = [100 * (1 - r["cpp_ms_p50"]["e2e_ms"] / r["classical_ms_p50"]["e2e_ms"]) for r in c6]
+lo3 = c6[3:]
+trio3 = lambda k: " / ".join(f"{r[k]['e2e_ms']:.3f}" for r in lo3)
+para = (f"C++ {trio3('cpp_ms_p50')} ms, classical {trio3('classical_ms_p50')} ms, Python {trio3('python_ms_p50')} ms",
+        f"by {min(gap[:3]):.1f}–{max(gap[:3]):.1f} % under load and {min(gap[3:]):.1f}–{max(gap[3:]):.1f} % at low load")
+check("six-run paragraph", all(p in text for p in para) and min(gap) > 0
+      and all(r["parity"]["max_abs_diff"] == 0 for r in c6), f"RESULTS must contain {para}")
+claim = f"under the classical pipeline in all six timing runs, by {min(gap):.1f}–{max(gap):.1f} %"
 check("headline end-to-end qualifier", claim in " ".join(" ".join(README_LINES[:20]).split()), f"README top must contain {claim!r}")
 
 print("README real-photo line (runs/real_hope.json)")

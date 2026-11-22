@@ -27,8 +27,8 @@ end to end in Python 1.9444 ms (edge_vs_classical.json › ms_per_img/int8 end t
 Timed per image in the same interleaved rounds (`cpp/bench.py --classical`, 3 runs, first run
 cited), C++ end to end takes 1.5025 ms (cpp_ort_classical.json › cpp_ms_p50/e2e_ms) against
 classical 1.5098 ms (cpp_ort_classical.json › classical_ms_p50/e2e_ms) and Python 1.7456 ms (cpp_ort_classical.json › python_ms_p50/e2e_ms):
-in C++ the detector ties the classical pipeline;
-the runs `_r2`, `_r3` give the same order (README).
+in C++ the detector is under the classical pipeline in this and the five other runs (`_r2` to `_r6`,
+6.0–7.5 % at low load; docs/RESULTS.md).
 
 ## The host
 

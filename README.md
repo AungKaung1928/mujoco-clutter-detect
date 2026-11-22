@@ -1,6 +1,6 @@
 # mujoco-clutter-detect
 
-Detects boxes, cylinders and spheres on a simulated tabletop: 0.91 mAP@[.5:.95] against 0.53 for a fitted classical pipeline. Static INT8 through ONNX Runtime runs the model in 1.38 ms on one thread; in C++ end to end the detector ties the classical pipeline, 1.502 against 1.510 ms.
+Detects boxes, cylinders and spheres on a simulated tabletop: 0.91 mAP@[.5:.95] against 0.53 for a fitted classical pipeline. Static INT8 through ONNX Runtime runs the model in 1.38 ms on one thread; in C++ end to end the detector is under the classical pipeline in all six timing runs, by 0.5–7.8 %.
 
 ![Detections on hard/val: dashed white ground truth, solid coloured predictions, centre heatmap beside each image](out/cnn_detections.png)
 
