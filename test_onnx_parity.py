@@ -32,8 +32,9 @@ with torch.no_grad():
 sess = ort.InferenceSession(os.path.join(HERE, "runs", "detector.onnx"), providers=["CPUExecutionProvider"])
 got = [np.concatenate(h) for h in zip(*(sess.run(["hm", "wh", "off"], {"image": x[i:i + 1]}) for i in range(len(x))))]
 diffs = [float(np.abs(a - b).max()) for a, b in zip(ref, got)]
-recorded = max(json.load(open(os.path.join(HERE, "runs", "onnx.json")))["max_diff"])
-ok = max(diffs) < TOL and TOL > recorded
+recorded = json.load(open(os.path.join(HERE, "runs", "onnx.json")))["max_diff"]
+# all(d < TOL), not max(diffs) < TOL: builtin max skips a NaN that is not first.
+ok = all(d < TOL for d in diffs) and all(r < TOL for r in recorded)
 print(f"  {'ok  ' if ok else 'FAIL'}  tracked detector.onnx vs det_hard_none.pt, 4 seeded inputs: "
       f"max |diff| hm/wh/off {diffs[0]:.1e} / {diffs[1]:.1e} / {diffs[2]:.1e} (< {TOL})")
 sys.exit(0 if ok else 1)
