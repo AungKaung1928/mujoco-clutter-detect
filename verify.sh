@@ -14,7 +14,7 @@ PY="${PYTHON:-python3}"
 if ! "$PY" -c 'import numpy, torch, cv2, mujoco, onnxruntime' 2>/dev/null; then
   echo "dependencies are not importable with '$PY'. From the repo root:" >&2
   echo "    python3 -m venv .venv && . .venv/bin/activate" >&2
-  echo "    pip install -r requirements.txt" >&2
+  echo "    pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple -r requirements.txt" >&2
   exit 1
 fi
 
