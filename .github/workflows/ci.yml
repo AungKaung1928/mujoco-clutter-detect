@@ -56,7 +56,8 @@ jobs:
       - run: cpp/ci.sh
 
   render:
-    # test_distractors.py renders a hand-built texd scene (occlusion labelling); software EGL (Mesa).
+    # test_distractors.py renders a hand-built texd scene (occlusion labelling); test_top_labels.py
+    # checks labels through the overhead camera. Software EGL (Mesa).
     runs-on: ubuntu-latest
     env:
       MUJOCO_GL: egl
@@ -69,3 +70,5 @@ jobs:
       - run: pip install mujoco==3.12.0 numpy
       - name: distractor occlusion labelling (renders)
         run: python test_distractors.py
+      - name: world labels vs overhead-camera segmentation boxes (renders)
+        run: python test_top_labels.py

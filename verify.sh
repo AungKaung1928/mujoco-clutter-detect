@@ -44,6 +44,7 @@ hr "2/6  target encoding -- encode/decode are inverses; real-photo crop"
 "$PY" test_real_hope.py || exit 1
 "$PY" test_backbone.py || exit 1
 "$PY" test_distractors.py || exit 1   # renders: needs MUJOCO_GL
+"$PY" test_top_labels.py || exit 1    # renders: needs MUJOCO_GL
 
 if ! have_data; then
   hr "3/6  edge-AI -- INT8 round trip, pruning rewiring exactness, MAC count"
