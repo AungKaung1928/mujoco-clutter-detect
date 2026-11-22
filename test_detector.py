@@ -184,6 +184,69 @@ def test_geometric_clips_and_drops():
     assert out[0, 1] == 0 and out[0, 3] == 26, out
     assert (out[:, 1:5] >= 0).all() and (out[:, 1:5] <= 192).all()
 
+
+class _FlipShift(_Shift):
+    """rng stand-in: flip (random() < 0.5) or not, then shift (dx, dy)."""
+    def __init__(self, flip, dx, dy):
+        super().__init__(dx, dy)
+        self.flip = flip
+
+    def random(self):
+        return 0.1 if self.flip else 0.9
+
+
+def test_geometric_moves_image_and_boxes_together():
+    """The augmentation is only correct if the pixels of an object end up inside
+    its transformed box. A bright block drawn exactly on the box must match the
+    output box after every flip / shift combination."""
+    import train_det as T
+    size = 64
+    box = np.array([[0, 10, 20, 26, 30]], np.float32)       # x 10..26, y 20..30
+    x = np.zeros((size, size, 3), np.float32)
+    x[20:30, 10:26] = 1.0
+    for flip in (False, True):
+        for dx, dy in ((5, -3), (-4, 6), (0, 0)):
+            img, out = T.geometric(x.copy(), box.copy(), _FlipShift(flip, dx, dy), size)
+            ys, xs = np.nonzero(img[..., 0] > 0.5)
+            got = [xs.min(), ys.min(), xs.max() + 1, ys.max() + 1]
+            assert len(out) == 1 and np.allclose(out[0, 1:5], got), (flip, dx, dy, out, got)
+
+
+def test_geometric_fills_the_wrapped_strip_with_the_edge():
+    """np.roll wraps; the strip it wraps in must repeat the edge pixel, not show
+    the opposite side of the image."""
+    import train_det as T
+    size = 16
+    x = np.tile(np.arange(size, dtype=np.float32)[None, :, None], (size, 1, 3))  # value = column
+    img, _ = T.geometric(x, np.zeros((0, 5), np.float32), _Shift(3, 0), size)
+    assert (img[:, :3, 0] == 0).all() and (img[:, 3, 0] == 0).all()           # column 0 repeated
+    img, _ = T.geometric(x, np.zeros((0, 5), np.float32), _Shift(-3, 0), size)
+    assert (img[:, -3:, 0] == size - 1).all()
+    y = np.transpose(x, (1, 0, 2)).copy()                                       # value = row
+    img, _ = T.geometric(y, np.zeros((0, 5), np.float32), _Shift(0, -3), size)
+    assert (img[-3:, :, 0] == size - 1).all()
+    img, _ = T.geometric(y, np.zeros((0, 5), np.float32), _Shift(0, 3), size)
+    assert (img[:3, :, 0] == 0).all()
+
+
+def test_geometric_drops_slivers_under_5px():
+    """Over half the area survives (3 of 5 px) but 3 px is a sliver, not a cube."""
+    import train_det as T
+    b = np.array([[0, 0, 40, 5, 50]], np.float32)          # 5 px wide at the left edge
+    _, out = T.geometric(np.zeros((64, 64, 3), np.float32), b, _Shift(-2, 0), 64)
+    assert len(out) == 0, out
+
+
+def test_geometric_flips_about_half_the_time():
+    """With a real generator, about half the calls flip (the box's x0 moves to the
+    other side of the frame); a flip probability of 0 or 1 would pass every test above."""
+    import train_det as T
+    rng = np.random.default_rng(0)
+    b = np.array([[0, 20, 30, 30, 40]], np.float32)     # x0 lands in 6..34 unflipped, 148..176 flipped
+    flips = sum(T.geometric(np.zeros((192, 192, 3), np.float32), b.copy(), rng, 192)[1][0, 1] > 96
+                for _ in range(400))
+    assert 160 < flips < 240, flips
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for f in fns:
