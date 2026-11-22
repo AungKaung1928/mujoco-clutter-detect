@@ -99,6 +99,65 @@ def test_offset_is_needed():
 
 
 
+def test_roundtrip_off_diagonal():
+    """Every box above has its centre on the grid diagonal (cx == cy), where a
+    transposed index or swapped x/y decodes to the same place. Off the diagonal
+    the index layout is visible."""
+    grid = 48
+    boxes = np.array([[100.0, 10.0, 130.0, 34.0],     # centre (115, 22) px -> cell (28, 5)
+                      [8.0, 150.0, 30.0, 178.0]])     # centre (19, 164) px -> cell (4, 41)
+    cls = np.array([1, 0])
+    hm, ind, wh, off, mask = D.encode(boxes, cls, grid)
+    assert ind[:2].tolist() == [5 * grid + 28, 41 * grid + 4]
+    b, c, _ = D.decode(torch.from_numpy(hm)[None], _dense(ind[:2], wh[:2], grid),
+                       _dense(ind[:2], off[:2], grid), k=2)
+    got = b[0].numpy()[np.argsort(b[0].numpy()[:, 0])]
+    assert np.allclose(got, boxes[np.argsort(boxes[:, 0])], atol=1e-3), got
+
+
+def test_decode_applies_maxpool_nms():
+    """test_maxpool_nms checks the expression; this checks that decode() uses it:
+    the weaker of two adjacent peaks must come back with score 0."""
+    hm = torch.zeros(1, 1, 8, 8)
+    hm[0, 0, 4, 4], hm[0, 0, 4, 5], hm[0, 0, 1, 1] = 0.9, 0.7, 0.6
+    z = torch.zeros(1, 2, 8, 8)
+    _, _, scores = D.decode(hm, z, z, k=3)
+    assert np.allclose(scores[0].numpy(), [0.9, 0.6, 0.0])
+
+
+def test_reg_l1_is_the_mean_over_real_objects():
+    pred = torch.zeros(1, 2, 4, 4)
+    pred[0, :, 1, 2] = torch.tensor([1.0, 2.0])         # flat index 6
+    pred[0, :, 3, 0] = torch.tensor([5.0, 5.0])         # flat index 12, padding slot
+    ind = torch.tensor([[6, 12]])
+    target = torch.tensor([[[0.0, 0.0], [0.0, 0.0]]])
+    mask = torch.tensor([[1.0, 0.0]])
+    # one real object, two channels: (|1| + |2|) / 2; the padding slot counts for nothing
+    assert abs(D.reg_l1(pred, ind, target, mask).item() - 1.5) < 1e-6
+
+
+def test_focal_loss_hand_computed():
+    """One peak (gt 1, pred 0.8) and one near-peak cell (gt 0.5, pred 0.3)."""
+    gt = torch.tensor([[[[1.0, 0.5]]]])
+    pred = torch.tensor([[[[0.8, 0.3]]]])
+    want = -(np.log(0.8) * 0.2 ** 2 + np.log(0.7) * 0.3 ** 2 * 0.5 ** 4)
+    assert abs(D.focal_loss(pred, gt).item() - want) < 1e-6
+
+
+def test_same_class_neighbours_do_not_sum_above_one():
+    hm, _, _, _, _ = D.encode(np.array([[40.0, 40.0, 68.0, 68.0], [44.0, 40.0, 72.0, 68.0]]),   # cells 13, 14
+                              np.array([0, 0]), 48)
+    assert hm[0].max() == 1.0 and (hm[0] == 1.0).sum() == 2
+
+
+def test_degenerate_and_outside_boxes_are_skipped():
+    grid = 48
+    boxes = np.array([[20.0, 20.0, 20.0, 40.0],          # zero width
+                      [188.0, 30.0, 196.0, 40.0]])       # centre x 192 px = cell 48, outside
+    _, _, _, _, mask = D.encode(boxes, np.array([0, 1]), grid)
+    assert mask.sum() == 0
+
+
 class _Shift:
     """rng stand-in for train_det.geometric: no flip, shift (dx, dy)."""
     def __init__(self, dx, dy):
