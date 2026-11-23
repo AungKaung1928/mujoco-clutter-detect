@@ -73,6 +73,25 @@ check("interval spans both scenes", E.scene_bootstrap(dets_b, moved_b, gts_b, ig
 # a control identical to the detections must give a zero difference, not the detector's own mAP
 check("control equal to detections: zero", E.scene_bootstrap(dets_b, dets_b, gts_b, ign_b, meta_b, n_boot=200), [0.0, 0.0])
 
+# Two scenes cannot tell a 95 % interval from a 90 % one. 20 one-photo scenes, 12 detected;
+# misses score lower, so the mAP of a resample depends only on its hit count h.
+# Replaying the same rng draws (choice over 20 sorted scenes = choice over 20 indices) gives the expected interval.
+import ap as AP
+n_sc, hits = 20, np.arange(20) < 12
+det_row = lambda i, h: [i, 0, *(hit if h else miss), 0.9 if h else 0.1]
+gts_m = np.array([[i, 0, 10, 10, 50, 50] for i in range(n_sc)], float)
+dets_m = np.array([det_row(i, h) for i, h in enumerate(hits)], float)
+moved_m = np.array([det_row(i, False) for i in range(n_sc)], float)
+meta_m = [{"scene": f"s{i:02d}"} for i in range(n_sc)]
+map_of_h = [AP.evaluate(np.array([det_row(i, i < h) for i in range(n_sc)], float), gts_m, n_classes=1)["mAP"]
+            for h in range(n_sc + 1)]
+rng = np.random.default_rng(0)
+diffs = [map_of_h[int(hits[rng.choice(n_sc, n_sc)].sum())] for _ in range(300)]
+pct = lambda q: [round(float(x), 4) for x in np.percentile(diffs, q)]
+check("replayed draws: 95 % and 90 % intervals differ", pct([2.5, 97.5]) != pct([5, 95]), True)
+check("20 scenes: 2.5 / 97.5 % of replayed draws",
+      E.scene_bootstrap(dets_m, moved_m, gts_m, np.zeros(n_sc, bool), meta_m, n_boot=300), pct([2.5, 97.5]))
+
 import gap_real_hope as G
 print("\ngap_real_hope test-time corrections")
 rng = np.random.default_rng(0)
@@ -105,7 +124,6 @@ check("best IoU: diagonal neighbour is 0", G.best_iou(np.array([[0, 0, 0, 0, 10,
                                                      np.array([[0, 0, 20, 20, 30, 30]], float)), [0.0])
 
 if len(sys.argv) > 1:
-    import ap as AP
     print("\nreal HOPE labels fed back as detections")
     imgs, gts, ign, meta = E.load(sys.argv[1])
     dets = np.c_[gts[~ign], np.ones((~ign).sum())]
