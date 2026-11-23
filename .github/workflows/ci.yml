@@ -72,3 +72,5 @@ jobs:
         run: python test_distractors.py
       - name: world labels vs overhead-camera segmentation boxes (renders)
         run: python test_top_labels.py
+      - name: object-on-object occlusion labelling (renders)
+        run: python test_occlusion.py
