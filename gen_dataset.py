@@ -241,6 +241,17 @@ def visibility(renderer, model, data, cam, bids, gids, placed, dis):
     return vis_px, vis_box, full_px, len(need_solo)
 
 
+def label_fraction(vis_px, vis_box, full_px):
+    """Visible fraction of an object that becomes a label, or None if it is dropped:
+    under MIN_VISIBLE_PX visible pixels or under MIN_VISIBLE_FRAC of its unoccluded
+    area. full_px None means it could not be occluded (fraction 1)."""
+    fp = full_px if full_px is not None else vis_px
+    frac = float(vis_px / fp) if fp > 0 else 0.0
+    if vis_box is None or vis_px < C.MIN_VISIBLE_PX or frac < C.MIN_VISIBLE_FRAC:
+        return None
+    return frac
+
+
 def generate(regime, n, img_size, seed, split, cam, do_occlusion=True):
     model = make_model(img_size, regime)
     data = mujoco.MjData(model)
@@ -309,9 +320,8 @@ def generate(regime, n, img_size, seed, split, cam, do_occlusion=True):
 
         for s in range(k):
             cls, _, _, _, yaw = objs[s]
-            fp = full_px[s] if full_px[s] is not None else vis_px[s]
-            frac = float(vis_px[s] / fp) if fp > 0 else 0.0
-            if vis_box[s] is None or vis_px[s] < C.MIN_VISIBLE_PX or frac < C.MIN_VISIBLE_FRAC:
+            frac = label_fraction(vis_px[s], vis_box[s], full_px[s])
+            if frac is None:
                 n_dropped += 1
                 continue
             x0, y0, x1, y1 = vis_box[s]
