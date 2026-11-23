@@ -97,6 +97,9 @@ r = G.obj_bg(flat, np.array([[0, 0, 20, 20, 40, 40]], float))
 check("detail split: background < 2 % of a striped box",
       r["laplacian_var_background_median"] < 0.02 * r["laplacian_var_objects_median"], True)
 check("best IoU per detection, own image only", G.best_iou(d, g), [0.5, 1.0, 0.0])
+# apart on both axes: negative width times negative height must not read as overlap
+check("best IoU: diagonal neighbour is 0", G.best_iou(np.array([[0, 0, 0, 0, 10, 10, .9]], float),
+                                                     np.array([[0, 0, 20, 20, 30, 30]], float)), [0.0])
 
 if len(sys.argv) > 1:
     import ap as AP
